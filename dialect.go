@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"context"
 )
 
 // Dialect interface contains behaviors that differ across SQL database
@@ -15,7 +14,7 @@ type Dialect interface {
 	GetName() string
 
 	// SetDB set db for dialect
-	SetDB(db *xrayDB)
+	SetDB(db SQLCommon)
 
 	// BindVar return the placeholder for actual values in SQL statements, in many dbs it is "?", Postgres using $1
 	BindVar(i int) string
@@ -25,17 +24,17 @@ type Dialect interface {
 	DataTypeOf(field *StructField) string
 
 	// HasIndex check has index or not
-	HasIndex(ctx context.Context, tableName string, indexName string) bool
+	HasIndex(tableName string, indexName string) bool
 	// HasForeignKey check has foreign key or not
-	HasForeignKey(ctx context.Context, tableName string, foreignKeyName string) bool
+	HasForeignKey(tableName string, foreignKeyName string) bool
 	// RemoveIndex remove index
-	RemoveIndex(ctx context.Context, tableName string, indexName string) error
+	RemoveIndex(tableName string, indexName string) error
 	// HasTable check has table or not
-	HasTable(ctx context.Context, tableName string) bool
+	HasTable(tableName string) bool
 	// HasColumn check has column or not
-	HasColumn(ctx context.Context, tableName string, columnName string) bool
+	HasColumn(tableName string, columnName string) bool
 	// ModifyColumn modify column's type
-	ModifyColumn(ctx context.Context, tableName string, columnName string, typ string) error
+	ModifyColumn(tableName string, columnName string, typ string) error
 
 	// LimitAndOffsetSQL return generated SQL with Limit and Offset, as mssql has special case
 	LimitAndOffsetSQL(limit, offset interface{}) string
@@ -50,12 +49,12 @@ type Dialect interface {
 	BuildKeyName(kind, tableName string, fields ...string) string
 
 	// CurrentDatabase return current database name
-	CurrentDatabase(ctx context.Context) string
+	CurrentDatabase() string
 }
 
 var dialectsMap = map[string]Dialect{}
 
-func newDialect(name string, db *xrayDB) Dialect {
+func newDialect(name string, db SQLCommon) Dialect {
 	if value, ok := dialectsMap[name]; ok {
 		dialect := reflect.New(reflect.TypeOf(value).Elem()).Interface().(Dialect)
 		dialect.SetDB(db)
@@ -122,10 +121,10 @@ var ParseFieldStructForDialect = func(field *StructField, dialect Dialect) (fiel
 	return fieldValue, dataType, size, strings.TrimSpace(additionalType)
 }
 
-func currentDatabaseAndTable(ctx context.Context, dialect Dialect, tableName string) (string, string) {
+func currentDatabaseAndTable(dialect Dialect, tableName string) (string, string) {
 	if strings.Contains(tableName, ".") {
 		splitStrings := strings.SplitN(tableName, ".", 2)
 		return splitStrings[0], splitStrings[1]
 	}
-	return dialect.CurrentDatabase(ctx), tableName
+	return dialect.CurrentDatabase(), tableName
 }

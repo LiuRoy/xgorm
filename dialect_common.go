@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"context"
 )
 
 // DefaultForeignKeyNamer contains the default foreign key name generator method
@@ -15,7 +14,7 @@ type DefaultForeignKeyNamer struct {
 }
 
 type commonDialect struct {
-	db *xrayDB
+	db SQLCommon
 	DefaultForeignKeyNamer
 }
 
@@ -27,7 +26,7 @@ func (commonDialect) GetName() string {
 	return "common"
 }
 
-func (s *commonDialect) SetDB(db *xrayDB) {
+func (s *commonDialect) SetDB(db SQLCommon) {
 	s.db = db
 }
 
@@ -98,43 +97,43 @@ func (s *commonDialect) DataTypeOf(field *StructField) string {
 	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
-func (s commonDialect) HasIndex(ctx context.Context, tableName string, indexName string) bool {
+func (s commonDialect) HasIndex(tableName string, indexName string) bool {
 	var count int
-	currentDatabase, tableName := currentDatabaseAndTable(ctx, &s, tableName)
-	s.db.QueryRow(ctx, "SELECT count(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = ? AND table_name = ? AND index_name = ?", currentDatabase, tableName, indexName).Scan(&count)
+	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
+	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = ? AND table_name = ? AND index_name = ?", currentDatabase, tableName, indexName).Scan(&count)
 	return count > 0
 }
 
-func (s commonDialect) RemoveIndex(ctx context.Context, tableName string, indexName string) error {
-	_, err := s.db.Exec(ctx, fmt.Sprintf("DROP INDEX %v", indexName))
+func (s commonDialect) RemoveIndex(tableName string, indexName string) error {
+	_, err := s.db.Exec(fmt.Sprintf("DROP INDEX %v", indexName))
 	return err
 }
 
-func (s commonDialect) HasForeignKey(ctx context.Context, tableName string, foreignKeyName string) bool {
+func (s commonDialect) HasForeignKey(tableName string, foreignKeyName string) bool {
 	return false
 }
 
-func (s commonDialect) HasTable(ctx context.Context, tableName string) bool {
+func (s commonDialect) HasTable(tableName string) bool {
 	var count int
-	currentDatabase, tableName := currentDatabaseAndTable(ctx, &s, tableName)
-	s.db.QueryRow(ctx, "SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_schema = ? AND table_name = ?", currentDatabase, tableName).Scan(&count)
+	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
+	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_schema = ? AND table_name = ?", currentDatabase, tableName).Scan(&count)
 	return count > 0
 }
 
-func (s commonDialect) HasColumn(ctx context.Context,tableName string, columnName string) bool {
+func (s commonDialect) HasColumn(tableName string, columnName string) bool {
 	var count int
-	currentDatabase, tableName := currentDatabaseAndTable(ctx, &s, tableName)
-	s.db.QueryRow(ctx, "SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ? AND column_name = ?", currentDatabase, tableName, columnName).Scan(&count)
+	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
+	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ? AND column_name = ?", currentDatabase, tableName, columnName).Scan(&count)
 	return count > 0
 }
 
-func (s commonDialect) ModifyColumn(ctx context.Context, tableName string, columnName string, typ string) error {
-	_, err := s.db.Exec(ctx, fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v TYPE %v", tableName, columnName, typ))
+func (s commonDialect) ModifyColumn(tableName string, columnName string, typ string) error {
+	_, err := s.db.Exec(fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v TYPE %v", tableName, columnName, typ))
 	return err
 }
 
-func (s commonDialect) CurrentDatabase(ctx context.Context) (name string) {
-	s.db.QueryRow(ctx, "SELECT DATABASE()").Scan(&name)
+func (s commonDialect) CurrentDatabase() (name string) {
+	s.db.QueryRow("SELECT DATABASE()").Scan(&name)
 	return
 }
 

@@ -16,7 +16,7 @@ type DB struct {
 	RowsAffected int64
 
 	// single db
-	db                *xrayDB
+	db                SQLCommon
 	blockGlobalUpdate bool
 	logMode           int
 	logger            logger
@@ -37,12 +37,31 @@ type DB struct {
 //       db, err := gorm.Open("mysql", "user:password@/dbname?charset=utf8&parseTime=True&loc=Local")
 //     }
 // GORM has wrapped some drivers, for easier to remember driver's import path, so you could import the mysql driver with
-//    import _ "github.com/LiuRoy/gorm/dialects/mysql"
-//    // import _ "github.com/LiuRoy/gorm/dialects/postgres"
-//    // import _ "github.com/LiuRoy/gorm/dialects/sqlite"
-//    // import _ "github.com/LiuRoy/gorm/dialects/mssql"
-func Open(dialect string, source string) (db *DB, err error) {
-	dbSQL, err := SQL(dialect, source)
+//    import _ "github.com/jinzhu/gorm/dialects/mysql"
+//    // import _ "github.com/jinzhu/gorm/dialects/postgres"
+//    // import _ "github.com/jinzhu/gorm/dialects/sqlite"
+//    // import _ "github.com/jinzhu/gorm/dialects/mssql"
+func Open(dialect string, args ...interface{}) (db *DB, err error) {
+	if len(args) == 0 {
+		err = errors.New("invalid database source")
+		return nil, err
+	}
+	var source string
+	var dbSQL SQLCommon
+
+	switch value := args[0].(type) {
+	case string:
+		var driver = dialect
+		if len(args) == 1 {
+			source = value
+		} else if len(args) >= 2 {
+			driver = value
+			source = args[1].(string)
+		}
+		dbSQL, err = sql.Open(driver, source)
+	case SQLCommon:
+		dbSQL = value
+	}
 
 	db = &DB{
 		db:        dbSQL,
@@ -56,8 +75,10 @@ func Open(dialect string, source string) (db *DB, err error) {
 		return
 	}
 	// Send a ping to make sure the database connection is alive.
-	if err = db.db.db.Ping(); err != nil {
-		db.db.db.Close()
+	if d, ok := dbSQL.(*sql.DB); ok {
+		if err = d.Ping(); err != nil {
+			d.Close()
+		}
 	}
 	return
 }
