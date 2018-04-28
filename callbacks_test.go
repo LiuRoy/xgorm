@@ -1,4 +1,4 @@
-package gorm_test
+package xgorm_test
 
 import (
 	"errors"
@@ -38,7 +38,7 @@ func (s *Product) AfterFind() {
 	s.AfterFindCallTimes = s.AfterFindCallTimes + 1
 }
 
-func (s *Product) AfterCreate(tx *gorm.DB) {
+func (s *Product) AfterCreate(tx *xgorm.DB) {
 	tx.Model(s).UpdateColumn(context.Background(), Product{AfterCreateCallTimes: s.AfterCreateCallTimes + 1})
 }
 

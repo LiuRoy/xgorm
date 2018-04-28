@@ -1,4 +1,4 @@
-package gorm_test
+package xgorm_test
 
 import (
 	"database/sql"
@@ -91,7 +91,7 @@ type Address struct {
 }
 
 type Language struct {
-	gorm.Model
+	xgorm.Model
 	Name  string
 	Users []User `gorm:"many2many:user_languages;"`
 }
@@ -208,7 +208,7 @@ type Post struct {
 }
 
 type Category struct {
-	gorm.Model
+	xgorm.Model
 	Name string
 
 	Categories []Category
@@ -216,7 +216,7 @@ type Category struct {
 }
 
 type Comment struct {
-	gorm.Model
+	xgorm.Model
 	PostId  int64
 	Content string
 	Post    Post
@@ -470,7 +470,7 @@ func TestModifyColumnType(t *testing.T) {
 	}
 
 	type ModifyColumnType struct {
-		gorm.Model
+		xgorm.Model
 		Name1 string `gorm:"length:100"`
 		Name2 string `gorm:"length:200"`
 	}

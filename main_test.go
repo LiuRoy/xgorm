@@ -1,4 +1,4 @@
-package gorm_test
+package xgorm_test
 
 import (
 	"database/sql"
@@ -13,16 +13,17 @@ import (
 	"context"
 
 	"github.com/erikstmartin/go-testdb"
-	"github.com/LiuRoy/xgorm"
 	_ "github.com/LiuRoy/xgorm/dialects/mssql"
 	_ "github.com/LiuRoy/xgorm/dialects/mysql"
 	"github.com/LiuRoy/xgorm/dialects/postgres"
 	_ "github.com/LiuRoy/xgorm/dialects/sqlite"
 	"github.com/jinzhu/now"
+	"github.com/LiuRoy/xgorm"
+	"github.com/jinzhu/gorm"
 )
 
 var (
-	DB                 *gorm.DB
+	DB                 *xgorm.DB
 	t1, t2, t3, t4, t5 time.Time
 )
 
@@ -36,7 +37,7 @@ func init() {
 	runMigration()
 }
 
-func OpenTestConnection() (db *gorm.DB, err error) {
+func OpenTestConnection() (db *xgorm.DB, err error) {
 	dbDSN := os.Getenv("GORM_DSN")
 	switch os.Getenv("GORM_DIALECT") {
 	case "mysql":
@@ -44,13 +45,13 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		if dbDSN == "" {
 			dbDSN = "gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True"
 		}
-		db, err = gorm.Open("mysql", dbDSN)
+		db, err = xgorm.Open("mysql", dbDSN)
 	case "postgres":
 		fmt.Println("testing postgres...")
 		if dbDSN == "" {
 			dbDSN = "user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable"
 		}
-		db, err = gorm.Open("postgres", dbDSN)
+		db, err = xgorm.Open("postgres", dbDSN)
 	case "mssql":
 		// CREATE LOGIN gorm WITH PASSWORD = 'LoremIpsum86';
 		// CREATE DATABASE gorm;
@@ -61,10 +62,10 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		if dbDSN == "" {
 			dbDSN = "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"
 		}
-		db, err = gorm.Open("mssql", dbDSN)
+		db, err = xgorm.Open("mssql", dbDSN)
 	default:
 		fmt.Println("testing sqlite3...")
-		db, err = gorm.Open("sqlite3", filepath.Join(os.TempDir(), "gorm.db"))
+		db, err = xgorm.Open("sqlite3", filepath.Join(os.TempDir(), "gorm.db"))
 	}
 
 	// db.SetLogger(Logger{log.New(os.Stdout, "\r\n", 0)})

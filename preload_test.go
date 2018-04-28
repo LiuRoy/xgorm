@@ -1,4 +1,4 @@
-package gorm_test
+package xgorm_test
 
 import (
 	"database/sql"

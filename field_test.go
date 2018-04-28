@@ -1,13 +1,14 @@
-package gorm_test
+package xgorm_test
 
 import (
 	"testing"
 
 	"github.com/LiuRoy/xgorm"
+	"context"
 )
 
 type CalculateField struct {
-	gorm.Model
+	xgorm.Model
 	Name     string
 	Children []CalculateFieldChild
 	Category CalculateFieldCategory
@@ -19,20 +20,20 @@ type EmbeddedField struct {
 }
 
 type CalculateFieldChild struct {
-	gorm.Model
+	xgorm.Model
 	CalculateFieldID uint
 	Name             string
 }
 
 type CalculateFieldCategory struct {
-	gorm.Model
+	xgorm.Model
 	CalculateFieldID uint
 	Name             string
 }
 
 func TestCalculateField(t *testing.T) {
 	var field CalculateField
-	var scope = DB.NewScope(&field)
+	var scope = DB.NewScope(context.Background(), &field)
 	if field, ok := scope.FieldByName("Children"); !ok || field.Relationship == nil {
 		t.Errorf("Should calculate fields correctly for the first time")
 	}

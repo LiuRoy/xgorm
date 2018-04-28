@@ -1,4 +1,4 @@
-package gorm_test
+package xgorm_test
 
 import (
 	"fmt"
@@ -17,14 +17,14 @@ type Person struct {
 }
 
 type PersonAddress struct {
-	gorm.JoinTableHandler
+	xgorm.JoinTableHandler
 	PersonID  int
 	AddressID int
 	DeletedAt *time.Time
 	CreatedAt time.Time
 }
 
-func (*PersonAddress) Add(handler gorm.JoinTableHandlerInterface, db *gorm.DB, foreignValue interface{}, associationValue interface{}) error {
+func (*PersonAddress) Add(handler xgorm.JoinTableHandlerInterface, db *xgorm.DB, foreignValue interface{}, associationValue interface{}) error {
 	foreignPrimaryKey, _ := strconv.Atoi(fmt.Sprint(db.NewScope(context.Background(), foreignValue).PrimaryKeyValue()))
 	associationPrimaryKey, _ := strconv.Atoi(fmt.Sprint(db.NewScope(context.Background(), associationValue).PrimaryKeyValue()))
 	if result := db.Unscoped().Model(&PersonAddress{}).Where(map[string]interface{}{
@@ -33,7 +33,7 @@ func (*PersonAddress) Add(handler gorm.JoinTableHandlerInterface, db *gorm.DB, f
 	}).Update(context.Background(), map[string]interface{}{
 		"person_id":  foreignPrimaryKey,
 		"address_id": associationPrimaryKey,
-		"deleted_at": gorm.Expr("NULL"),
+		"deleted_at": xgorm.Expr("NULL"),
 	}).RowsAffected; result == 0 {
 		return db.Create(context.Background(), &PersonAddress{
 			PersonID:  foreignPrimaryKey,
@@ -44,11 +44,11 @@ func (*PersonAddress) Add(handler gorm.JoinTableHandlerInterface, db *gorm.DB, f
 	return nil
 }
 
-func (*PersonAddress) Delete(handler gorm.JoinTableHandlerInterface, db *gorm.DB, sources ...interface{}) error {
+func (*PersonAddress) Delete(handler xgorm.JoinTableHandlerInterface, db *xgorm.DB, sources ...interface{}) error {
 	return db.Delete(context.Background(), &PersonAddress{}).Error
 }
 
-func (pa *PersonAddress) JoinWith(handler gorm.JoinTableHandlerInterface, db *gorm.DB, source interface{}) *gorm.DB {
+func (pa *PersonAddress) JoinWith(handler xgorm.JoinTableHandlerInterface, db *xgorm.DB, source interface{}) *xgorm.DB {
 	table := pa.Table(db)
 	return db.Joins("INNER JOIN person_addresses ON person_addresses.address_id = addresses.id").Where(fmt.Sprintf("%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02'", table, table))
 }
@@ -77,7 +77,7 @@ func TestJoinTable(t *testing.T) {
 		t.Errorf("Found two addresses with Unscoped")
 	}
 
-	if DB.Model(person).Association(context.Background(), "Addresses").Clear(); DB.Model(person).Association("Addresses").Count() != 0 {
+	if DB.Model(person).Association(context.Background(), "Addresses").Clear(); DB.Model(person).Association(context.Background(), "Addresses").Count() != 0 {
 		t.Errorf("Should deleted all addresses")
 	}
 }

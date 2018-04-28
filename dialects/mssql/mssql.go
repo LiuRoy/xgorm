@@ -9,6 +9,7 @@ import (
 
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/LiuRoy/xgorm"
+	"github.com/jinzhu/gorm"
 )
 
 func setIdentityInsert(scope *gorm.Scope) {
@@ -31,14 +32,14 @@ func turnOffIdentityInsert(scope *gorm.Scope) {
 }
 
 func init() {
-	gorm.DefaultCallback.Create().After("gorm:begin_transaction").Register("mssql:set_identity_insert", setIdentityInsert)
-	gorm.DefaultCallback.Create().Before("gorm:commit_or_rollback_transaction").Register("mssql:turn_off_identity_insert", turnOffIdentityInsert)
-	gorm.RegisterDialect("mssql", &mssql{})
+	xgorm.DefaultCallback.Create().After("gorm:begin_transaction").Register("mssql:set_identity_insert", setIdentityInsert)
+	xgorm.DefaultCallback.Create().Before("gorm:commit_or_rollback_transaction").Register("mssql:turn_off_identity_insert", turnOffIdentityInsert)
+	xgorm.RegisterDialect("mssql", &mssql{})
 }
 
 type mssql struct {
-	db gorm.SQLCommon
-	gorm.DefaultForeignKeyNamer
+	db xgorm.SQLCommon
+	xgorm.DefaultForeignKeyNamer
 }
 
 func (mssql) GetName() string {
@@ -91,7 +92,7 @@ func (s *mssql) DataTypeOf(field *gorm.StructField) string {
 				sqlType = "datetimeoffset"
 			}
 		default:
-			if gorm.IsByteArrayOrSlice(dataValue) {
+			if xgorm.IsByteArrayOrSlice(dataValue) {
 				if size > 0 && size < 8000 {
 					sqlType = fmt.Sprintf("varbinary(%d)", size)
 				} else {

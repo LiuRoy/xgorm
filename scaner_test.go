@@ -1,4 +1,4 @@
-package gorm_test
+package xgorm_test
 
 import (
 	"database/sql/driver"
@@ -124,14 +124,14 @@ type ScannerDataTypeTestStruct2 struct {
 }
 
 func TestScannerDataType(t *testing.T) {
-	scope := gorm.Scope{Value: &ScannerDataTypeTestStruct{}}
+	scope := xgorm.Scope{Value: &ScannerDataTypeTestStruct{}}
 	if field, ok := scope.FieldByName("ScannerDataType"); ok {
 		if DB.Dialect().DataTypeOf(field.StructField) != "json" {
 			t.Errorf("data type for scanner is wrong")
 		}
 	}
 
-	scope = gorm.Scope{Value: &ScannerDataTypeTestStruct2{}}
+	scope = xgorm.Scope{Value: &ScannerDataTypeTestStruct2{}}
 	if field, ok := scope.FieldByName("ScannerDataType"); ok {
 		if DB.Dialect().DataTypeOf(field.StructField) != "varchar(24)" {
 			t.Errorf("data type for scanner is wrong")

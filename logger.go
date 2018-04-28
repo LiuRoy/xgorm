@@ -1,4 +1,4 @@
-package gorm
+package xgorm
 
 import (
 	"database/sql/driver"

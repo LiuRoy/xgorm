@@ -1,4 +1,4 @@
-package gorm_test
+package xgorm_test
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 func TestErrorsCanBeUsedOutsideGorm(t *testing.T) {
 	errs := []error{errors.New("First"), errors.New("Second")}
 
-	gErrs := gorm.Errors(errs)
+	gErrs := xgorm.Errors(errs)
 	gErrs = gErrs.Add(errors.New("Third"))
 	gErrs = gErrs.Add(gErrs)
 

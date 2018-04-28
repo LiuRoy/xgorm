@@ -1,4 +1,4 @@
-package gorm_test
+package xgorm_test
 
 import (
 	"encoding/hex"
@@ -10,16 +10,16 @@ import (
 	"github.com/LiuRoy/xgorm"
 )
 
-func NameIn1And2(d *gorm.DB) *gorm.DB {
+func NameIn1And2(d *xgorm.DB) *xgorm.DB {
 	return d.Where("name in (?)", []string{"ScopeUser1", "ScopeUser2"})
 }
 
-func NameIn2And3(d *gorm.DB) *gorm.DB {
+func NameIn2And3(d *xgorm.DB) *xgorm.DB {
 	return d.Where("name in (?)", []string{"ScopeUser2", "ScopeUser3"})
 }
 
-func NameIn(names []string) func(d *gorm.DB) *gorm.DB {
-	return func(d *gorm.DB) *gorm.DB {
+func NameIn(names []string) func(d *xgorm.DB) *xgorm.DB {
+	return func(d *xgorm.DB) *xgorm.DB {
 		return d.Where("name in (?)", names)
 	}
 }
