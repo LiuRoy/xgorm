@@ -370,7 +370,7 @@ func (scope *Scope) Exec() *Scope {
 
 			seg.Lock()
 			seg.Namespace = "remote"
-			seg.GetSQL().SanitizedQuery = scope.SQL
+			seg.GetSQL().SanitizedQuery = printSql(scope.SQL, scope.SQLVars...)
 			seg.Unlock()
 
 			var err error

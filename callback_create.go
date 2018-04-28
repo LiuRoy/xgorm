@@ -120,12 +120,13 @@ func createCallback(scope *Scope) {
 		// execute create sql
 		if lastInsertIDReturningSuffix == "" || primaryField == nil {
 			var result sql.Result
-			err := xray.Capture(scope.ctx, "xgorm", func(ctx context.Context) error {
+			err := xray.Capture(scope.ctx, scope.TableName(), func(ctx context.Context) error {
 				seg := xray.GetSegment(ctx)
 
 				seg.Lock()
 				seg.Namespace = "remote"
-				seg.GetSQL().SanitizedQuery = scope.SQL
+				seg.GetSQL().SanitizedQuery = printSql(scope.SQL, scope.SQLVars...)
+				scope.selectSQL()
 				seg.Unlock()
 
 				var err error
@@ -145,12 +146,12 @@ func createCallback(scope *Scope) {
 			}
 		} else {
 			if primaryField.Field.CanAddr() {
-				err := xray.Capture(scope.ctx, "xgorm", func(ctx context.Context) error {
+				err := xray.Capture(scope.ctx, scope.TableName(), func(ctx context.Context) error {
 					seg := xray.GetSegment(ctx)
 
 					seg.Lock()
 					seg.Namespace = "remote"
-					seg.GetSQL().SanitizedQuery = scope.SQL
+					seg.GetSQL().SanitizedQuery = printSql(scope.SQL, scope.SQLVars...)
 					seg.Unlock()
 
 					err := scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...).Scan(primaryField.Field.Addr().Interface())

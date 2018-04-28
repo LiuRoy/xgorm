@@ -26,24 +26,24 @@ func rowQueryCallback(scope *Scope) {
 		scope.prepareQuerySQL()
 
 		if rowResult, ok := result.(*RowQueryResult); ok {
-			xray.Capture(scope.ctx, "xgorm", func(ctx context.Context) error {
+			xray.Capture(scope.ctx, scope.TableName(), func(ctx context.Context) error {
 				seg := xray.GetSegment(ctx)
 
 				seg.Lock()
 				seg.Namespace = "remote"
-				seg.GetSQL().SanitizedQuery = scope.SQL
+				seg.GetSQL().SanitizedQuery = printSql(scope.SQL, scope.SQLVars...)
 				seg.Unlock()
 
 				rowResult.Row = scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...)
 				return nil
 			})
 		} else if rowsResult, ok := result.(*RowsQueryResult); ok {
-			rowsResult.Error = xray.Capture(scope.ctx, "xgorm", func(ctx context.Context) error {
+			rowsResult.Error = xray.Capture(scope.ctx, scope.TableName(), func(ctx context.Context) error {
 				seg := xray.GetSegment(ctx)
 
 				seg.Lock()
 				seg.Namespace = "remote"
-				seg.GetSQL().SanitizedQuery = scope.SQL
+				seg.GetSQL().SanitizedQuery = printSql(scope.SQL, scope.SQLVars...)
 				seg.Unlock()
 
 				var err error
