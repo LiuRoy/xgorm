@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"context"
 )
 
 // JoinTableHandlerInterface is an interface for how to handle many2many relations
@@ -84,7 +85,7 @@ func (s JoinTableHandler) Table(db *DB) string {
 
 func (s JoinTableHandler) updateConditionMap(conditionMap map[string]interface{}, db *DB, joinTableSources []JoinTableSource, sources ...interface{}) {
 	for _, source := range sources {
-		scope := db.NewScope(source)
+		scope := db.NewScope(context.Background(),source)
 		modelType := scope.GetModelStruct().ModelType
 
 		for _, joinTableSource := range joinTableSources {
@@ -103,7 +104,7 @@ func (s JoinTableHandler) updateConditionMap(conditionMap map[string]interface{}
 // Add create relationship in join table for source and destination
 func (s JoinTableHandler) Add(handler JoinTableHandlerInterface, db *DB, source interface{}, destination interface{}) error {
 	var (
-		scope        = db.NewScope("")
+		scope        = db.NewScope(context.Background(),"")
 		conditionMap = map[string]interface{}{}
 	)
 
@@ -137,13 +138,13 @@ func (s JoinTableHandler) Add(handler JoinTableHandlerInterface, db *DB, source 
 		strings.Join(conditions, " AND "),
 	)
 
-	return db.Exec(sql, values...).Error
+	return db.Exec(context.Background(),sql, values...).Error
 }
 
 // Delete delete relationship in join table for sources
 func (s JoinTableHandler) Delete(handler JoinTableHandlerInterface, db *DB, sources ...interface{}) error {
 	var (
-		scope        = db.NewScope(nil)
+		scope        = db.NewScope(context.Background(),nil)
 		conditions   []string
 		values       []interface{}
 		conditionMap = map[string]interface{}{}
@@ -156,13 +157,13 @@ func (s JoinTableHandler) Delete(handler JoinTableHandlerInterface, db *DB, sour
 		values = append(values, value)
 	}
 
-	return db.Table(handler.Table(db)).Where(strings.Join(conditions, " AND "), values...).Delete("").Error
+	return db.Table(handler.Table(db)).Where(strings.Join(conditions, " AND "), values...).Delete(context.Background(),"").Error
 }
 
 // JoinWith query with `Join` conditions
 func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, source interface{}) *DB {
 	var (
-		scope           = db.NewScope(source)
+		scope           = db.NewScope(context.Background(),source)
 		tableName       = handler.Table(db)
 		quotedTableName = scope.Quote(tableName)
 		joinConditions  []string
@@ -170,7 +171,7 @@ func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, so
 	)
 
 	if s.Source.ModelType == scope.GetModelStruct().ModelType {
-		destinationTableName := db.NewScope(reflect.New(s.Destination.ModelType).Interface()).QuotedTableName()
+		destinationTableName := db.NewScope(context.Background(), reflect.New(s.Destination.ModelType).Interface()).QuotedTableName()
 		for _, foreignKey := range s.Destination.ForeignKeys {
 			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTableName, scope.Quote(foreignKey.DBName), destinationTableName, scope.Quote(foreignKey.AssociationDBName)))
 		}

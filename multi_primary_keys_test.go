@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"context"
 )
 
 type Blog struct {
@@ -49,7 +50,7 @@ func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
 			},
 		}
 
-		DB.Save(&blog)
+		DB.Save(context.Background(),&blog)
 		if !compareTags(blog.Tags, []string{"tag1", "tag2"}) {
 			t.Errorf("Blog should has two tags")
 		}
@@ -66,13 +67,13 @@ func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
 		}
 
 		var tags []Tag
-		DB.Model(&blog).Related(&tags, "Tags")
+		DB.Model(&blog).Related(context.Background(),&tags, "Tags")
 		if !compareTags(tags, []string{"tag1", "tag2", "tag3"}) {
 			t.Errorf("Should find 3 tags with Related")
 		}
 
 		var blog1 Blog
-		DB.Preload("Tags").Find(&blog1)
+		DB.Preload("Tags").Find(context.Background(),&blog1)
 		if !compareTags(blog1.Tags, []string{"tag1", "tag2", "tag3"}) {
 			t.Errorf("Preload many2many relations")
 		}
@@ -82,7 +83,7 @@ func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
 		var tag6 = &Tag{Locale: "ZH", Value: "tag6"}
 		DB.Model(&blog).Association("Tags").Replace(tag5, tag6)
 		var tags2 []Tag
-		DB.Model(&blog).Related(&tags2, "Tags")
+		DB.Model(&blog).Related(context.Background(),&tags2, "Tags")
 		if !compareTags(tags2, []string{"tag5", "tag6"}) {
 			t.Errorf("Should find 2 tags after Replace")
 		}
@@ -94,7 +95,7 @@ func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
 		// Delete
 		DB.Model(&blog).Association("Tags").Delete(tag5)
 		var tags3 []Tag
-		DB.Model(&blog).Related(&tags3, "Tags")
+		DB.Model(&blog).Related(context.Background(),&tags3, "Tags")
 		if !compareTags(tags3, []string{"tag6"}) {
 			t.Errorf("Should find 1 tags after Delete")
 		}
@@ -105,7 +106,7 @@ func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
 
 		DB.Model(&blog).Association("Tags").Delete(tag3)
 		var tags4 []Tag
-		DB.Model(&blog).Related(&tags4, "Tags")
+		DB.Model(&blog).Related(context.Background(),&tags4, "Tags")
 		if !compareTags(tags4, []string{"tag6"}) {
 			t.Errorf("Tag should not be deleted when Delete with a unrelated tag")
 		}
@@ -132,13 +133,13 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 				{Locale: "ZH", Value: "tag2"},
 			},
 		}
-		DB.Save(&blog)
+		DB.Save(context.Background(),&blog)
 
 		blog2 := Blog{
 			ID:     blog.ID,
 			Locale: "EN",
 		}
-		DB.Create(&blog2)
+		DB.Create(context.Background(),&blog2)
 
 		if !compareTags(blog.SharedTags, []string{"tag1", "tag2"}) {
 			t.Errorf("Blog should has two tags")
@@ -160,18 +161,18 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 		}
 
 		var tags []Tag
-		DB.Model(&blog).Related(&tags, "SharedTags")
+		DB.Model(&blog).Related(context.Background(),&tags, "SharedTags")
 		if !compareTags(tags, []string{"tag1", "tag2", "tag3"}) {
 			t.Errorf("Should find 3 tags with Related")
 		}
 
-		DB.Model(&blog2).Related(&tags, "SharedTags")
+		DB.Model(&blog2).Related(context.Background(),&tags, "SharedTags")
 		if !compareTags(tags, []string{"tag1", "tag2", "tag3"}) {
 			t.Errorf("Should find 3 tags with Related")
 		}
 
 		var blog1 Blog
-		DB.Preload("SharedTags").Find(&blog1)
+		DB.Preload("SharedTags").Find(context.Background(),&blog1)
 		if !compareTags(blog1.SharedTags, []string{"tag1", "tag2", "tag3"}) {
 			t.Errorf("Preload many2many relations")
 		}
@@ -179,12 +180,12 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 		var tag4 = &Tag{Locale: "ZH", Value: "tag4"}
 		DB.Model(&blog2).Association("SharedTags").Append(tag4)
 
-		DB.Model(&blog).Related(&tags, "SharedTags")
+		DB.Model(&blog).Related(context.Background(),&tags, "SharedTags")
 		if !compareTags(tags, []string{"tag1", "tag2", "tag3", "tag4"}) {
 			t.Errorf("Should find 3 tags with Related")
 		}
 
-		DB.Model(&blog2).Related(&tags, "SharedTags")
+		DB.Model(&blog2).Related(context.Background(),&tags, "SharedTags")
 		if !compareTags(tags, []string{"tag1", "tag2", "tag3", "tag4"}) {
 			t.Errorf("Should find 3 tags with Related")
 		}
@@ -194,12 +195,12 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 		var tag6 = &Tag{Locale: "ZH", Value: "tag6"}
 		DB.Model(&blog2).Association("SharedTags").Replace(tag5, tag6)
 		var tags2 []Tag
-		DB.Model(&blog).Related(&tags2, "SharedTags")
+		DB.Model(&blog).Related(context.Background(),&tags2, "SharedTags")
 		if !compareTags(tags2, []string{"tag5", "tag6"}) {
 			t.Errorf("Should find 2 tags after Replace")
 		}
 
-		DB.Model(&blog2).Related(&tags2, "SharedTags")
+		DB.Model(&blog2).Related(context.Background(),&tags2, "SharedTags")
 		if !compareTags(tags2, []string{"tag5", "tag6"}) {
 			t.Errorf("Should find 2 tags after Replace")
 		}
@@ -211,7 +212,7 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 		// Delete
 		DB.Model(&blog).Association("SharedTags").Delete(tag5)
 		var tags3 []Tag
-		DB.Model(&blog).Related(&tags3, "SharedTags")
+		DB.Model(&blog).Related(context.Background(),&tags3, "SharedTags")
 		if !compareTags(tags3, []string{"tag6"}) {
 			t.Errorf("Should find 1 tags after Delete")
 		}
@@ -222,7 +223,7 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 
 		DB.Model(&blog2).Association("SharedTags").Delete(tag3)
 		var tags4 []Tag
-		DB.Model(&blog).Related(&tags4, "SharedTags")
+		DB.Model(&blog).Related(context.Background(),&tags4, "SharedTags")
 		if !compareTags(tags4, []string{"tag6"}) {
 			t.Errorf("Tag should not be deleted when Delete with a unrelated tag")
 		}
@@ -249,13 +250,13 @@ func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
 				{Locale: "ZH", Value: "tag2"},
 			},
 		}
-		DB.Save(&blog)
+		DB.Save(context.Background(),&blog)
 
 		blog2 := Blog{
 			ID:     blog.ID,
 			Locale: "EN",
 		}
-		DB.Create(&blog2)
+		DB.Create(context.Background(),&blog2)
 
 		// Append
 		var tag3 = &Tag{Locale: "ZH", Value: "tag3"}
@@ -273,18 +274,18 @@ func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
 		}
 
 		var tags []Tag
-		DB.Model(&blog).Related(&tags, "LocaleTags")
+		DB.Model(&blog).Related(context.Background(),&tags, "LocaleTags")
 		if !compareTags(tags, []string{"tag1", "tag2", "tag3"}) {
 			t.Errorf("Should find 3 tags with Related")
 		}
 
-		DB.Model(&blog2).Related(&tags, "LocaleTags")
+		DB.Model(&blog2).Related(context.Background(),&tags, "LocaleTags")
 		if len(tags) != 0 {
 			t.Errorf("Should find 0 tags with Related for EN Blog")
 		}
 
 		var blog1 Blog
-		DB.Preload("LocaleTags").Find(&blog1, "locale = ? AND id = ?", "ZH", blog.ID)
+		DB.Preload("LocaleTags").Find(context.Background(),&blog1, "locale = ? AND id = ?", "ZH", blog.ID)
 		if !compareTags(blog1.LocaleTags, []string{"tag1", "tag2", "tag3"}) {
 			t.Errorf("Preload many2many relations")
 		}
@@ -292,12 +293,12 @@ func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
 		var tag4 = &Tag{Locale: "ZH", Value: "tag4"}
 		DB.Model(&blog2).Association("LocaleTags").Append(tag4)
 
-		DB.Model(&blog).Related(&tags, "LocaleTags")
+		DB.Model(&blog).Related(context.Background(),&tags, "LocaleTags")
 		if !compareTags(tags, []string{"tag1", "tag2", "tag3"}) {
 			t.Errorf("Should find 3 tags with Related for EN Blog")
 		}
 
-		DB.Model(&blog2).Related(&tags, "LocaleTags")
+		DB.Model(&blog2).Related(context.Background(), &tags, "LocaleTags")
 		if !compareTags(tags, []string{"tag4"}) {
 			t.Errorf("Should find 1 tags with Related for EN Blog")
 		}
@@ -308,24 +309,24 @@ func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
 		DB.Model(&blog2).Association("LocaleTags").Replace(tag5, tag6)
 
 		var tags2 []Tag
-		DB.Model(&blog).Related(&tags2, "LocaleTags")
+		DB.Model(&blog).Related(context.Background(), &tags2, "LocaleTags")
 		if !compareTags(tags2, []string{"tag1", "tag2", "tag3"}) {
 			t.Errorf("CN Blog's tags should not be changed after EN Blog Replace")
 		}
 
 		var blog11 Blog
-		DB.Preload("LocaleTags").First(&blog11, "id = ? AND locale = ?", blog.ID, blog.Locale)
+		DB.Preload("LocaleTags").First(context.Background(), &blog11, "id = ? AND locale = ?", blog.ID, blog.Locale)
 		if !compareTags(blog11.LocaleTags, []string{"tag1", "tag2", "tag3"}) {
 			t.Errorf("CN Blog's tags should not be changed after EN Blog Replace")
 		}
 
-		DB.Model(&blog2).Related(&tags2, "LocaleTags")
+		DB.Model(&blog2).Related(context.Background(), &tags2, "LocaleTags")
 		if !compareTags(tags2, []string{"tag5", "tag6"}) {
 			t.Errorf("Should find 2 tags after Replace")
 		}
 
 		var blog21 Blog
-		DB.Preload("LocaleTags").First(&blog21, "id = ? AND locale = ?", blog2.ID, blog2.Locale)
+		DB.Preload("LocaleTags").First(context.Background(), &blog21, "id = ? AND locale = ?", blog2.ID, blog2.Locale)
 		if !compareTags(blog21.LocaleTags, []string{"tag5", "tag6"}) {
 			t.Errorf("EN Blog's tags should be changed after Replace")
 		}

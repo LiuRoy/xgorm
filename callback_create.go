@@ -3,6 +3,9 @@ package gorm
 import (
 	"fmt"
 	"strings"
+	"database/sql"
+	"context"
+	"github.com/aws/aws-xray-sdk-go/xray"
 )
 
 // Define callbacks for creating
@@ -116,7 +119,20 @@ func createCallback(scope *Scope) {
 
 		// execute create sql
 		if lastInsertIDReturningSuffix == "" || primaryField == nil {
-			if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
+			var result sql.Result
+			err := xray.Capture(scope.ctx, "xgorm", func(ctx context.Context) error {
+				seg := xray.GetSegment(ctx)
+
+				seg.Lock()
+				seg.Namespace = "remote"
+				seg.GetSQL().SanitizedQuery = scope.SQL
+				seg.Unlock()
+
+				var err error
+				result, err = scope.SQLDB().Exec(scope.SQL, scope.SQLVars...)
+				return err
+			})
+			if scope.Err(err) == nil {
 				// set rows affected count
 				scope.db.RowsAffected, _ = result.RowsAffected()
 
@@ -129,7 +145,18 @@ func createCallback(scope *Scope) {
 			}
 		} else {
 			if primaryField.Field.CanAddr() {
-				if err := scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...).Scan(primaryField.Field.Addr().Interface()); scope.Err(err) == nil {
+				err := xray.Capture(scope.ctx, "xgorm", func(ctx context.Context) error {
+					seg := xray.GetSegment(ctx)
+
+					seg.Lock()
+					seg.Namespace = "remote"
+					seg.GetSQL().SanitizedQuery = scope.SQL
+					seg.Unlock()
+
+					err := scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...).Scan(primaryField.Field.Addr().Interface())
+					return err
+				})
+				if scope.Err(err) == nil {
 					primaryField.IsBlank = false
 					scope.db.RowsAffected = 1
 				}
@@ -149,7 +176,7 @@ func forceReloadAfterCreateCallback(scope *Scope) {
 				db = db.Where(fmt.Sprintf("%v = ?", field.DBName), field.Field.Interface())
 			}
 		}
-		db.Scan(scope.Value)
+		db.Scan(scope.ctx, scope.Value)
 	}
 }
 

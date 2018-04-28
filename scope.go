@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"context"
+	"github.com/aws/aws-xray-sdk-go/xray"
 )
 
 // Scope contain current operation's information when you perform any operation on the database
@@ -24,6 +26,7 @@ type Scope struct {
 	skipLeft        bool
 	fields          *[]*Field
 	selectAttrs     *[]string
+	ctx             context.Context
 }
 
 // IndirectValue return scope's reflect value's indirect value
@@ -361,7 +364,20 @@ func (scope *Scope) Exec() *Scope {
 	defer scope.trace(NowFunc())
 
 	if !scope.HasError() {
-		if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
+		var result sql.Result
+		err := xray.Capture(scope.ctx, "xgorm", func(ctx context.Context) error {
+			seg := xray.GetSegment(ctx)
+
+			seg.Lock()
+			seg.Namespace = "remote"
+			seg.GetSQL().SanitizedQuery = scope.SQL
+			seg.Unlock()
+
+			var err error
+			result, err = scope.SQLDB().Exec(scope.SQL, scope.SQLVars...)
+			return err
+		})
+		if scope.Err(err) == nil {
 			if count, err := result.RowsAffected(); scope.Err(err) == nil {
 				scope.db.RowsAffected = count
 			}
@@ -1045,7 +1061,7 @@ func (scope *Scope) changeableField(field *Field) bool {
 }
 
 func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
-	toScope := scope.db.NewScope(value)
+	toScope := scope.db.NewScope(scope.ctx, value)
 	tx := scope.db.Set("gorm:association:source", scope.Value)
 
 	for _, foreignKey := range append(foreignKeys, toScope.typeName()+"Id", scope.typeName()+"Id") {
@@ -1056,14 +1072,14 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 			if relationship := fromField.Relationship; relationship != nil {
 				if relationship.Kind == "many_to_many" {
 					joinTableHandler := relationship.JoinTableHandler
-					scope.Err(joinTableHandler.JoinWith(joinTableHandler, tx, scope.Value).Find(value).Error)
+					scope.Err(joinTableHandler.JoinWith(joinTableHandler, tx, scope.Value).Find(scope.ctx, value).Error)
 				} else if relationship.Kind == "belongs_to" {
 					for idx, foreignKey := range relationship.ForeignDBNames {
 						if field, ok := scope.FieldByName(foreignKey); ok {
 							tx = tx.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.AssociationForeignDBNames[idx])), field.Field.Interface())
 						}
 					}
-					scope.Err(tx.Find(value).Error)
+					scope.Err(tx.Find(scope.ctx, value).Error)
 				} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
 					for idx, foreignKey := range relationship.ForeignDBNames {
 						if field, ok := scope.FieldByName(relationship.AssociationForeignDBNames[idx]); ok {
@@ -1074,16 +1090,16 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 					if relationship.PolymorphicType != "" {
 						tx = tx.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.PolymorphicDBName)), relationship.PolymorphicValue)
 					}
-					scope.Err(tx.Find(value).Error)
+					scope.Err(tx.Find(scope.ctx, value).Error)
 				}
 			} else {
 				sql := fmt.Sprintf("%v = ?", scope.Quote(toScope.PrimaryKey()))
-				scope.Err(tx.Where(sql, fromField.Field.Interface()).Find(value).Error)
+				scope.Err(tx.Where(sql, fromField.Field.Interface()).Find(scope.ctx, value).Error)
 			}
 			return scope
 		} else if toField != nil {
 			sql := fmt.Sprintf("%v = ?", scope.Quote(toField.DBName))
-			scope.Err(tx.Where(sql, scope.PrimaryKeyValue()).Find(value).Error)
+			scope.Err(tx.Where(sql, scope.PrimaryKeyValue()).Find(scope.ctx, value).Error)
 			return scope
 		}
 	}
@@ -1131,7 +1147,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 				}
 			}
 
-			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v, PRIMARY KEY (%v))%s", scope.Quote(joinTable), strings.Join(sqlTypes, ","), strings.Join(primaryKeys, ","), scope.getTableOptions())).Error)
+			scope.Err(scope.NewDB().Exec(scope.ctx, fmt.Sprintf("CREATE TABLE %v (%v, PRIMARY KEY (%v))%s", scope.Quote(joinTable), strings.Join(sqlTypes, ","), strings.Join(primaryKeys, ","), scope.getTableOptions())).Error)
 		}
 		scope.NewDB().Table(joinTable).AutoMigrate(joinTableHandler)
 	}

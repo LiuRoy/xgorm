@@ -6,8 +6,9 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"context"
 
-	"github.com/LiuRoy/gorm"
+	"github.com/LiuRoy/xgorm"
 )
 
 func TestBelongsTo(t *testing.T) {
@@ -18,7 +19,7 @@ func TestBelongsTo(t *testing.T) {
 		MainCategory: Category{Name: "Main Category 1"},
 	}
 
-	if err := DB.Save(&post).Error; err != nil {
+	if err := DB.Save(context.Background(), &post).Error; err != nil {
 		t.Error("Got errors when save post", err)
 	}
 

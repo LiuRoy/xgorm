@@ -74,10 +74,10 @@ func saveBeforeAssociationsCallback(scope *Scope) {
 
 			if newScope.PrimaryKeyZero() {
 				if autoCreate {
-					scope.Err(scope.NewDB().Save(fieldValue).Error)
+					scope.Err(scope.NewDB().Save(scope.ctx, fieldValue).Error)
 				}
 			} else if autoUpdate {
-				scope.Err(scope.NewDB().Save(fieldValue).Error)
+				scope.Err(scope.NewDB().Save(scope.ctx, fieldValue).Error)
 			}
 
 			if saveReference {
@@ -107,7 +107,7 @@ func saveAfterAssociationsCallback(scope *Scope) {
 				for i := 0; i < value.Len(); i++ {
 					newDB := scope.NewDB()
 					elem := value.Index(i).Addr().Interface()
-					newScope := newDB.NewScope(elem)
+					newScope := newDB.NewScope(scope.ctx, elem)
 
 					if saveReference {
 						if relationship.JoinTableHandler == nil && len(relationship.ForeignFieldNames) != 0 {
@@ -126,10 +126,10 @@ func saveAfterAssociationsCallback(scope *Scope) {
 
 					if newScope.PrimaryKeyZero() {
 						if autoCreate {
-							scope.Err(newDB.Save(elem).Error)
+							scope.Err(newDB.Save(scope.ctx, elem).Error)
 						}
 					} else if autoUpdate {
-						scope.Err(newDB.Save(elem).Error)
+						scope.Err(newDB.Save(scope.ctx, elem).Error)
 					}
 
 					if !scope.New(newScope.Value).PrimaryKeyZero() && saveReference {
@@ -159,10 +159,10 @@ func saveAfterAssociationsCallback(scope *Scope) {
 
 				if newScope.PrimaryKeyZero() {
 					if autoCreate {
-						scope.Err(scope.NewDB().Save(elem).Error)
+						scope.Err(scope.NewDB().Save(scope.ctx, elem).Error)
 					}
 				} else if autoUpdate {
-					scope.Err(scope.NewDB().Save(elem).Error)
+					scope.Err(scope.NewDB().Save(scope.ctx, elem).Error)
 				}
 			}
 		}

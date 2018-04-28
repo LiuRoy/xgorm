@@ -6,8 +6,9 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"context"
 
-	"github.com/LiuRoy/gorm"
+	"github.com/LiuRoy/xgorm"
 )
 
 func getPreloadUser(name string) *User {
@@ -52,36 +53,36 @@ func checkUserHasPreloadData(user User, t *testing.T) {
 
 func TestPreload(t *testing.T) {
 	user1 := getPreloadUser("user1")
-	DB.Save(user1)
+	DB.Save(context.Background(), user1)
 
 	preloadDB := DB.Where("role = ?", "Preload").Preload("BillingAddress").Preload("ShippingAddress").
 		Preload("CreditCard").Preload("Emails").Preload("Company")
 	var user User
-	preloadDB.Find(&user)
+	preloadDB.Find(context.Background(), &user)
 	checkUserHasPreloadData(user, t)
 
 	user2 := getPreloadUser("user2")
-	DB.Save(user2)
+	DB.Save(context.Background(), user2)
 
 	user3 := getPreloadUser("user3")
-	DB.Save(user3)
+	DB.Save(context.Background(), user3)
 
 	var users []User
-	preloadDB.Find(&users)
+	preloadDB.Find(context.Background(), &users)
 
 	for _, user := range users {
 		checkUserHasPreloadData(user, t)
 	}
 
 	var users2 []*User
-	preloadDB.Find(&users2)
+	preloadDB.Find(context.Background(), &users2)
 
 	for _, user := range users2 {
 		checkUserHasPreloadData(*user, t)
 	}
 
 	var users3 []*User
-	preloadDB.Preload("Emails", "email = ?", user3.Emails[0].Email).Find(&users3)
+	preloadDB.Preload("Emails", "email = ?", user3.Emails[0].Email).Find(context.Background(), &users3)
 
 	for _, user := range users3 {
 		if user.Name == user3.Name {
@@ -98,25 +99,25 @@ func TestPreload(t *testing.T) {
 
 func TestAutoPreload(t *testing.T) {
 	user1 := getPreloadUser("auto_user1")
-	DB.Save(user1)
+	DB.Save(context.Background(), user1)
 
 	preloadDB := DB.Set("gorm:auto_preload", true).Where("role = ?", "Preload")
 	var user User
-	preloadDB.Find(&user)
+	preloadDB.Find(context.Background(), &user)
 	checkUserHasPreloadData(user, t)
 
 	user2 := getPreloadUser("auto_user2")
-	DB.Save(user2)
+	DB.Save(context.Background(), user2)
 
 	var users []User
-	preloadDB.Find(&users)
+	preloadDB.Find(context.Background(), &users)
 
 	for _, user := range users {
 		checkUserHasPreloadData(user, t)
 	}
 
 	var users2 []*User
-	preloadDB.Find(&users2)
+	preloadDB.Find(context.Background(), &users2)
 
 	for _, user := range users2 {
 		checkUserHasPreloadData(*user, t)
@@ -149,12 +150,12 @@ func TestNestedPreload1(t *testing.T) {
 	}
 
 	want := Level3{Level2: Level2{Level1: Level1{Value: "value"}}}
-	if err := DB.Create(&want).Error; err != nil {
+	if err := DB.Create(context.Background(), &want).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got Level3
-	if err := DB.Preload("Level2").Preload("Level2.Level1").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2").Preload("Level2.Level1").Find(context.Background(), &got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -162,7 +163,7 @@ func TestNestedPreload1(t *testing.T) {
 		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
 	}
 
-	if err := DB.Preload("Level2").Preload("Level2.Level1").Find(&got, "name = ?", "not_found").Error; err != gorm.ErrRecordNotFound {
+	if err := DB.Preload("Level2").Preload("Level2.Level1").Find(context.Background(), &got, "name = ?", "not_found").Error; err != gorm.ErrRecordNotFound {
 		t.Error(err)
 	}
 }
@@ -207,12 +208,12 @@ func TestNestedPreload2(t *testing.T) {
 			},
 		},
 	}
-	if err := DB.Create(&want).Error; err != nil {
+	if err := DB.Create(context.Background(), &want).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got Level3
-	if err := DB.Preload("Level2s.Level1s").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2s.Level1s").Find(context.Background(), &got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -252,12 +253,12 @@ func TestNestedPreload3(t *testing.T) {
 			{Level1: Level1{Value: "value2"}},
 		},
 	}
-	if err := DB.Create(&want).Error; err != nil {
+	if err := DB.Create(context.Background(), &want).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got Level3
-	if err := DB.Preload("Level2s.Level1").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2s.Level1").Find(context.Background(), &got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -299,12 +300,12 @@ func TestNestedPreload4(t *testing.T) {
 			},
 		},
 	}
-	if err := DB.Create(&want).Error; err != nil {
+	if err := DB.Create(context.Background(), &want).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got Level3
-	if err := DB.Preload("Level2.Level1s").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2.Level1s").Find(context.Background(), &got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -341,16 +342,16 @@ func TestNestedPreload5(t *testing.T) {
 
 	want := make([]Level3, 2)
 	want[0] = Level3{Level2: Level2{Level1: Level1{Value: "value"}}}
-	if err := DB.Create(&want[0]).Error; err != nil {
+	if err := DB.Create(context.Background(), &want[0]).Error; err != nil {
 		t.Error(err)
 	}
 	want[1] = Level3{Level2: Level2{Level1: Level1{Value: "value2"}}}
-	if err := DB.Create(&want[1]).Error; err != nil {
+	if err := DB.Create(context.Background(), &want[1]).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got []Level3
-	if err := DB.Preload("Level2").Preload("Level2.Level1").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2").Preload("Level2.Level1").Find(context.Background(), &got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -400,7 +401,7 @@ func TestNestedPreload6(t *testing.T) {
 			},
 		},
 	}
-	if err := DB.Create(&want[0]).Error; err != nil {
+	if err := DB.Create(context.Background(), &want[0]).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -419,12 +420,12 @@ func TestNestedPreload6(t *testing.T) {
 			},
 		},
 	}
-	if err := DB.Create(&want[1]).Error; err != nil {
+	if err := DB.Create(context.Background(), &want[1]).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got []Level3
-	if err := DB.Preload("Level2s.Level1s").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2s.Level1s").Find(context.Background(), &got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -465,7 +466,7 @@ func TestNestedPreload7(t *testing.T) {
 			{Level1: Level1{Value: "value2"}},
 		},
 	}
-	if err := DB.Create(&want[0]).Error; err != nil {
+	if err := DB.Create(context.Background(), &want[0]).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -475,12 +476,12 @@ func TestNestedPreload7(t *testing.T) {
 			{Level1: Level1{Value: "value4"}},
 		},
 	}
-	if err := DB.Create(&want[1]).Error; err != nil {
+	if err := DB.Create(context.Background(), &want[1]).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got []Level3
-	if err := DB.Preload("Level2s.Level1").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2s.Level1").Find(context.Background(), &got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -523,7 +524,7 @@ func TestNestedPreload8(t *testing.T) {
 			},
 		},
 	}
-	if err := DB.Create(&want[0]).Error; err != nil {
+	if err := DB.Create(context.Background(), &want[0]).Error; err != nil {
 		t.Error(err)
 	}
 	want[1] = Level3{
@@ -534,12 +535,12 @@ func TestNestedPreload8(t *testing.T) {
 			},
 		},
 	}
-	if err := DB.Create(&want[1]).Error; err != nil {
+	if err := DB.Create(context.Background(), &want[1]).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got []Level3
-	if err := DB.Preload("Level2.Level1s").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2.Level1s").Find(context.Background(), &got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -609,7 +610,7 @@ func TestNestedPreload9(t *testing.T) {
 			},
 		},
 	}
-	if err := DB.Create(&want[0]).Error; err != nil {
+	if err := DB.Create(context.Background(), &want[0]).Error; err != nil {
 		t.Error(err)
 	}
 	want[1] = Level3{
@@ -632,12 +633,12 @@ func TestNestedPreload9(t *testing.T) {
 			},
 		},
 	}
-	if err := DB.Create(&want[1]).Error; err != nil {
+	if err := DB.Create(context.Background(), &want[1]).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got []Level3
-	if err := DB.Preload("Level2").Preload("Level2.Level1s").Preload("Level2_1").Preload("Level2_1.Level1s").Preload("Level2_1.Level1s.Level0s").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2").Preload("Level2.Level1s").Preload("Level2_1").Preload("Level2_1.Level1s").Preload("Level2_1.Level1s.Level0s").Find(context.Background(), &got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -676,7 +677,7 @@ func TestNestedPreload10(t *testing.T) {
 	}
 
 	levelA1 := &LevelA1{Value: "foo"}
-	if err := DB.Save(levelA1).Error; err != nil {
+	if err := DB.Save(context.Background(), levelA1).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -696,13 +697,13 @@ func TestNestedPreload10(t *testing.T) {
 		},
 	}
 	for _, levelA2 := range want {
-		if err := DB.Save(levelA2).Error; err != nil {
+		if err := DB.Save(context.Background(), levelA2).Error; err != nil {
 			t.Error(err)
 		}
 	}
 
 	var got []*LevelA2
-	if err := DB.Preload("LevelA3s.LevelA1").Find(&got).Error; err != nil {
+	if err := DB.Preload("LevelA3s.LevelA1").Find(context.Background(), &got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -739,7 +740,7 @@ func TestNestedPreload11(t *testing.T) {
 	}
 
 	levelB1 := &LevelB1{Value: "foo"}
-	if err := DB.Create(levelB1).Error; err != nil {
+	if err := DB.Create(context.Background(), levelB1).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -747,14 +748,14 @@ func TestNestedPreload11(t *testing.T) {
 		Value:     "bar",
 		LevelB1ID: sql.NullInt64{Valid: true, Int64: int64(levelB1.ID)},
 	}
-	if err := DB.Create(levelB3).Error; err != nil {
+	if err := DB.Create(context.Background(), levelB3).Error; err != nil {
 		t.Error(err)
 	}
 	levelB1.LevelB3s = []*LevelB3{levelB3}
 
 	want := []*LevelB1{levelB1}
 	var got []*LevelB1
-	if err := DB.Preload("LevelB3s.LevelB2s").Find(&got).Error; err != nil {
+	if err := DB.Preload("LevelB3s.LevelB2s").Find(context.Background(), &got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -796,7 +797,7 @@ func TestNestedPreload12(t *testing.T) {
 			Value: "c1",
 		},
 	}
-	DB.Create(&level2)
+	DB.Create(context.Background(), &level2)
 
 	want := []LevelC3{
 		{
@@ -809,13 +810,13 @@ func TestNestedPreload12(t *testing.T) {
 	}
 
 	for i := range want {
-		if err := DB.Create(&want[i]).Error; err != nil {
+		if err := DB.Create(context.Background(), &want[i]).Error; err != nil {
 			t.Error(err)
 		}
 	}
 
 	var got []LevelC3
-	if err := DB.Preload("LevelC2").Preload("LevelC2.LevelC1").Find(&got).Error; err != nil {
+	if err := DB.Preload("LevelC2").Preload("LevelC2.LevelC1").Find(context.Background(), &got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -855,7 +856,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 		{Value: "ru", LanguageCode: "ru"},
 		{Value: "en", LanguageCode: "en"},
 	}}
-	if err := DB.Save(&want).Error; err != nil {
+	if err := DB.Save(context.Background(), &want).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -863,12 +864,12 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 		{Value: "zh", LanguageCode: "zh"},
 		{Value: "de", LanguageCode: "de"},
 	}}
-	if err := DB.Save(&want2).Error; err != nil {
+	if err := DB.Save(context.Background(), &want2).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got Level2
-	if err := DB.Preload("Level1s").Find(&got, "value = ?", "Bob").Error; err != nil {
+	if err := DB.Preload("Level1s").Find(context.Background(), &got, "value = ?", "Bob").Error; err != nil {
 		t.Error(err)
 	}
 
@@ -877,7 +878,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 	}
 
 	var got2 Level2
-	if err := DB.Preload("Level1s").Find(&got2, "value = ?", "Tom").Error; err != nil {
+	if err := DB.Preload("Level1s").Find(context.Background(), &got2, "value = ?", "Tom").Error; err != nil {
 		t.Error(err)
 	}
 
@@ -886,7 +887,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 	}
 
 	var got3 []Level2
-	if err := DB.Preload("Level1s").Find(&got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
+	if err := DB.Preload("Level1s").Find(context.Background(), &got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -895,14 +896,14 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 	}
 
 	var got4 []Level2
-	if err := DB.Preload("Level1s", "value IN (?)", []string{"zh", "ru"}).Find(&got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
+	if err := DB.Preload("Level1s", "value IN (?)", []string{"zh", "ru"}).Find(context.Background(), &got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
 		t.Error(err)
 	}
 
 	var ruLevel1 Level1
 	var zhLevel1 Level1
-	DB.First(&ruLevel1, "value = ?", "ru")
-	DB.First(&zhLevel1, "value = ?", "zh")
+	DB.First(context.Background(), &ruLevel1, "value = ?", "ru")
+	DB.First(context.Background(), &zhLevel1, "value = ?", "zh")
 
 	got.Level1s = []Level1{ruLevel1}
 	got2.Level1s = []Level1{zhLevel1}
@@ -910,7 +911,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 		t.Errorf("got %s; want %s", toJSONString(got4), toJSONString([]Level2{got, got2}))
 	}
 
-	if err := DB.Preload("Level1s").Find(&got4, "value IN (?)", []string{"non-existing"}).Error; err != nil {
+	if err := DB.Preload("Level1s").Find(context.Background(), &got4, "value IN (?)", []string{"non-existing"}).Error; err != nil {
 		t.Error(err)
 	}
 }
@@ -953,7 +954,7 @@ func TestManyToManyPreloadForNestedPointer(t *testing.T) {
 			},
 		},
 	}
-	if err := DB.Save(&want).Error; err != nil {
+	if err := DB.Save(context.Background(), &want).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -967,12 +968,12 @@ func TestManyToManyPreloadForNestedPointer(t *testing.T) {
 			},
 		},
 	}
-	if err := DB.Save(&want2).Error; err != nil {
+	if err := DB.Save(context.Background(), &want2).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got Level3
-	if err := DB.Preload("Level2.Level1s").Find(&got, "value = ?", "Bob").Error; err != nil {
+	if err := DB.Preload("Level2.Level1s").Find(context.Background(), &got, "value = ?", "Bob").Error; err != nil {
 		t.Error(err)
 	}
 
@@ -981,7 +982,7 @@ func TestManyToManyPreloadForNestedPointer(t *testing.T) {
 	}
 
 	var got2 Level3
-	if err := DB.Preload("Level2.Level1s").Find(&got2, "value = ?", "Tom").Error; err != nil {
+	if err := DB.Preload("Level2.Level1s").Find(context.Background(), &got2, "value = ?", "Tom").Error; err != nil {
 		t.Error(err)
 	}
 
@@ -990,7 +991,7 @@ func TestManyToManyPreloadForNestedPointer(t *testing.T) {
 	}
 
 	var got3 []Level3
-	if err := DB.Preload("Level2.Level1s").Find(&got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
+	if err := DB.Preload("Level2.Level1s").Find(context.Background(), &got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -999,17 +1000,17 @@ func TestManyToManyPreloadForNestedPointer(t *testing.T) {
 	}
 
 	var got4 []Level3
-	if err := DB.Preload("Level2.Level1s", "value IN (?)", []string{"zh", "ru"}).Find(&got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
+	if err := DB.Preload("Level2.Level1s", "value IN (?)", []string{"zh", "ru"}).Find(context.Background(), &got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got5 Level3
-	DB.Preload("Level2.Level1s").Find(&got5, "value = ?", "bogus")
+	DB.Preload("Level2.Level1s").Find(context.Background(), &got5, "value = ?", "bogus")
 
 	var ruLevel1 Level1
 	var zhLevel1 Level1
-	DB.First(&ruLevel1, "value = ?", "ru")
-	DB.First(&zhLevel1, "value = ?", "zh")
+	DB.First(context.Background(), &ruLevel1, "value = ?", "ru")
+	DB.First(context.Background(), &zhLevel1, "value = ?", "zh")
 
 	got.Level2.Level1s = []*Level1{&ruLevel1}
 	got2.Level2.Level1s = []*Level1{&zhLevel1}
@@ -1065,12 +1066,12 @@ func TestNestedManyToManyPreload(t *testing.T) {
 		},
 	}
 
-	if err := DB.Save(&want).Error; err != nil {
+	if err := DB.Save(context.Background(), &want).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got Level3
-	if err := DB.Preload("Level2s").Preload("Level2s.Level1s").Find(&got, "value = ?", "Level3").Error; err != nil {
+	if err := DB.Preload("Level2s").Preload("Level2s.Level1s").Find(context.Background(), &got, "value = ?", "Level3").Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1078,7 +1079,7 @@ func TestNestedManyToManyPreload(t *testing.T) {
 		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
 	}
 
-	if err := DB.Preload("Level2s.Level1s").Find(&got, "value = ?", "not_found").Error; err != gorm.ErrRecordNotFound {
+	if err := DB.Preload("Level2s.Level1s").Find(context.Background(), &got, "value = ?", "not_found").Error; err != gorm.ErrRecordNotFound {
 		t.Error(err)
 	}
 }
@@ -1122,12 +1123,12 @@ func TestNestedManyToManyPreload2(t *testing.T) {
 		},
 	}
 
-	if err := DB.Save(&want).Error; err != nil {
+	if err := DB.Save(context.Background(), &want).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got Level3
-	if err := DB.Preload("Level2.Level1s").Find(&got, "value = ?", "Level3").Error; err != nil {
+	if err := DB.Preload("Level2.Level1s").Find(context.Background(), &got, "value = ?", "Level3").Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1135,7 +1136,7 @@ func TestNestedManyToManyPreload2(t *testing.T) {
 		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
 	}
 
-	if err := DB.Preload("Level2.Level1s").Find(&got, "value = ?", "not_found").Error; err != gorm.ErrRecordNotFound {
+	if err := DB.Preload("Level2.Level1s").Find(context.Background(), &got, "value = ?", "not_found").Error; err != gorm.ErrRecordNotFound {
 		t.Error(err)
 	}
 }
@@ -1198,7 +1199,7 @@ func TestNestedManyToManyPreload3(t *testing.T) {
 	}
 
 	for _, want := range wants {
-		if err := DB.Save(&want).Error; err != nil {
+		if err := DB.Save(context.Background(), &want).Error; err != nil {
 			t.Error(err)
 		}
 	}
@@ -1206,7 +1207,7 @@ func TestNestedManyToManyPreload3(t *testing.T) {
 	var gots []*Level3
 	if err := DB.Preload("Level2.Level1s", func(db *gorm.DB) *gorm.DB {
 		return db.Order("level1.id ASC")
-	}).Find(&gots).Error; err != nil {
+	}).Find(context.Background(), &gots).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1273,7 +1274,7 @@ func TestNestedManyToManyPreload3ForStruct(t *testing.T) {
 	}
 
 	for _, want := range wants {
-		if err := DB.Save(&want).Error; err != nil {
+		if err := DB.Save(context.Background(), &want).Error; err != nil {
 			t.Error(err)
 		}
 	}
@@ -1281,7 +1282,7 @@ func TestNestedManyToManyPreload3ForStruct(t *testing.T) {
 	var gots []*Level3
 	if err := DB.Preload("Level2.Level1s", func(db *gorm.DB) *gorm.DB {
 		return db.Order("level1.id ASC")
-	}).Find(&gots).Error; err != nil {
+	}).Find(context.Background(), &gots).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1338,12 +1339,12 @@ func TestNestedManyToManyPreload4(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := DB.Save(&dummy).Error; err != nil {
+	if err := DB.Save(context.Background(), &dummy).Error; err != nil {
 		t.Error(err)
 	}
 
 	var level1 Level1
-	if err := DB.Preload("Level2s").Preload("Level2s.Level3s").Preload("Level2s.Level3s.Level4s").First(&level1).Error; err != nil {
+	if err := DB.Preload("Level2s").Preload("Level2s.Level3s").Preload("Level2s.Level3s.Level4s").First(context.Background(), &level1).Error; err != nil {
 		t.Error(err)
 	}
 }
@@ -1373,7 +1374,7 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 		{Value: "ru"},
 		{Value: "en"},
 	}}
-	if err := DB.Save(&want).Error; err != nil {
+	if err := DB.Save(context.Background(), &want).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1381,12 +1382,12 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 		{Value: "zh"},
 		{Value: "de"},
 	}}
-	if err := DB.Save(&want2).Error; err != nil {
+	if err := DB.Save(context.Background(), &want2).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got Level2
-	if err := DB.Preload("Level1s").Find(&got, "value = ?", "Bob").Error; err != nil {
+	if err := DB.Preload("Level1s").Find(context.Background(), &got, "value = ?", "Bob").Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1395,7 +1396,7 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 	}
 
 	var got2 Level2
-	if err := DB.Preload("Level1s").Find(&got2, "value = ?", "Tom").Error; err != nil {
+	if err := DB.Preload("Level1s").Find(context.Background(), &got2, "value = ?", "Tom").Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1404,7 +1405,7 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 	}
 
 	var got3 []Level2
-	if err := DB.Preload("Level1s").Find(&got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
+	if err := DB.Preload("Level1s").Find(context.Background(), &got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1413,17 +1414,17 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 	}
 
 	var got4 []Level2
-	if err := DB.Preload("Level1s", "value IN (?)", []string{"zh", "ru"}).Find(&got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
+	if err := DB.Preload("Level1s", "value IN (?)", []string{"zh", "ru"}).Find(context.Background(), &got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got5 Level2
-	DB.Preload("Level1s").First(&got5, "value = ?", "bogus")
+	DB.Preload("Level1s").First(context.Background(), &got5, "value = ?", "bogus")
 
 	var ruLevel1 Level1
 	var zhLevel1 Level1
-	DB.First(&ruLevel1, "value = ?", "ru")
-	DB.First(&zhLevel1, "value = ?", "zh")
+	DB.First(context.Background(), &ruLevel1, "value = ?", "ru")
+	DB.First(context.Background(), &zhLevel1, "value = ?", "zh")
 
 	got.Level1s = []*Level1{&ruLevel1}
 	got2.Level1s = []*Level1{&zhLevel1}
@@ -1469,7 +1470,7 @@ func TestNilPointerSlice(t *testing.T) {
 			},
 		},
 	}
-	if err := DB.Save(&want).Error; err != nil {
+	if err := DB.Save(context.Background(), &want).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1477,12 +1478,12 @@ func TestNilPointerSlice(t *testing.T) {
 		Value:  "Tom",
 		Level2: nil,
 	}
-	if err := DB.Save(&want2).Error; err != nil {
+	if err := DB.Save(context.Background(), &want2).Error; err != nil {
 		t.Error(err)
 	}
 
 	var got []Level1
-	if err := DB.Preload("Level2").Preload("Level2.Level3").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2").Preload("Level2.Level3").Find(context.Background(), &got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1530,12 +1531,12 @@ func TestNilPointerSlice2(t *testing.T) {
 	}
 
 	want := new(Level1)
-	if err := DB.Save(want).Error; err != nil {
+	if err := DB.Save(context.Background(), want).Error; err != nil {
 		t.Error(err)
 	}
 
 	got := new(Level1)
-	err := DB.Preload("Level2.Level3s.Level4").Last(&got).Error
+	err := DB.Preload("Level2.Level3s.Level4").Last(context.Background(), &got).Error
 	if err != nil {
 		t.Error(err)
 	}
@@ -1581,16 +1582,16 @@ func TestPrefixedPreloadDuplication(t *testing.T) {
 	}
 
 	lvl := &Level3{}
-	if err := DB.Save(lvl).Error; err != nil {
+	if err := DB.Save(context.Background(), lvl).Error; err != nil {
 		t.Error(err)
 	}
 
 	sublvl1 := &Level4{Level3ID: lvl.ID}
-	if err := DB.Save(sublvl1).Error; err != nil {
+	if err := DB.Save(context.Background(), sublvl1).Error; err != nil {
 		t.Error(err)
 	}
 	sublvl2 := &Level4{Level3ID: lvl.ID}
-	if err := DB.Save(sublvl2).Error; err != nil {
+	if err := DB.Save(context.Background(), sublvl2).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1601,7 +1602,7 @@ func TestPrefixedPreloadDuplication(t *testing.T) {
 			Level3: lvl,
 		},
 	}
-	if err := DB.Save(&want1).Error; err != nil {
+	if err := DB.Save(context.Background(), &want1).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1610,14 +1611,14 @@ func TestPrefixedPreloadDuplication(t *testing.T) {
 			Level3: lvl,
 		},
 	}
-	if err := DB.Save(&want2).Error; err != nil {
+	if err := DB.Save(context.Background(), &want2).Error; err != nil {
 		t.Error(err)
 	}
 
 	want := []Level1{want1, want2}
 
 	var got []Level1
-	err := DB.Preload("Level2.Level3.Level4s").Find(&got).Error
+	err := DB.Preload("Level2.Level3.Level4s").Find(context.Background(), &got).Error
 	if err != nil {
 		t.Error(err)
 	}
@@ -1654,7 +1655,7 @@ func TestPreloadManyToManyCallbacks(t *testing.T) {
 			Level2{Name: "l2-1"}, Level2{Name: "l2-2"},
 		},
 	}
-	DB.Save(&lvl)
+	DB.Save(context.Background(), &lvl)
 
 	called := 0
 
@@ -1662,7 +1663,7 @@ func TestPreloadManyToManyCallbacks(t *testing.T) {
 		called = called + 1
 	})
 
-	DB.Preload("Level2s").First(&Level1{}, "id = ?", lvl.ID)
+	DB.Preload("Level2s").First(context.Background(), &Level1{}, "id = ?", lvl.ID)
 
 	if called != 3 {
 		t.Errorf("Wanted callback to be called 3 times but got %d", called)

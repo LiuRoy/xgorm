@@ -14,11 +14,11 @@ Need to runnable with [GORM's docker compose config](https://github.com/LiuRoy/g
 package main
 
 import (
-	"github.com/LiuRoy/gorm"
-	_ "github.com/LiuRoy/gorm/dialects/mssql"
-	_ "github.com/LiuRoy/gorm/dialects/mysql"
-	_ "github.com/LiuRoy/gorm/dialects/postgres"
-	_ "github.com/LiuRoy/gorm/dialects/sqlite"
+	"github.com/LiuRoy/xgorm"
+	_ "github.com/LiuRoy/xgorm/dialects/mssql"
+	_ "github.com/LiuRoy/xgorm/dialects/mysql"
+	_ "github.com/LiuRoy/xgorm/dialects/postgres"
+	_ "github.com/LiuRoy/xgorm/dialects/sqlite"
 )
 
 var db *gorm.DB

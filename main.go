@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"time"
+	"context"
 )
 
 // DB contains information for current db connection
@@ -162,15 +163,15 @@ func (s *DB) SingularTable(enable bool) {
 }
 
 // NewScope create a scope for current operation
-func (s *DB) NewScope(value interface{}) *Scope {
+func (s *DB) NewScope(ctx context.Context, value interface{}) *Scope {
 	dbClone := s.clone()
 	dbClone.Value = value
-	return &Scope{db: dbClone, Search: dbClone.search.clone(), Value: value}
+	return &Scope{db: dbClone, Search: dbClone.search.clone(), Value: value, ctx: ctx}
 }
 
 // QueryExpr returns the query as expr object
 func (s *DB) QueryExpr() *expr {
-	scope := s.NewScope(s.Value)
+	scope := s.NewScope(context.Background(), s.Value)
 	scope.InstanceSet("skip_bindvar", true)
 	scope.prepareQuerySQL()
 
@@ -179,7 +180,7 @@ func (s *DB) QueryExpr() *expr {
 
 // SubQuery returns the query as sub query
 func (s *DB) SubQuery() *expr {
-	scope := s.NewScope(s.Value)
+	scope := s.NewScope(context.Background(), s.Value)
 	scope.InstanceSet("skip_bindvar", true)
 	scope.prepareQuerySQL()
 
@@ -282,52 +283,52 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 }
 
 // First find first record that match given conditions, order by primary key
-func (s *DB) First(out interface{}, where ...interface{}) *DB {
-	newScope := s.NewScope(out)
+func (s *DB) First(ctx context.Context, out interface{}, where ...interface{}) *DB {
+	newScope := s.NewScope(ctx, out)
 	newScope.Search.Limit(1)
 	return newScope.Set("gorm:order_by_primary_key", "ASC").
 		inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
 // Take return a record that match given conditions, the order will depend on the database implementation
-func (s *DB) Take(out interface{}, where ...interface{}) *DB {
-	newScope := s.NewScope(out)
+func (s *DB) Take(ctx context.Context, out interface{}, where ...interface{}) *DB {
+	newScope := s.NewScope(ctx, out)
 	newScope.Search.Limit(1)
 	return newScope.inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
 // Last find last record that match given conditions, order by primary key
-func (s *DB) Last(out interface{}, where ...interface{}) *DB {
-	newScope := s.NewScope(out)
+func (s *DB) Last(ctx context.Context, out interface{}, where ...interface{}) *DB {
+	newScope := s.NewScope(ctx, out)
 	newScope.Search.Limit(1)
 	return newScope.Set("gorm:order_by_primary_key", "DESC").
 		inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
 // Find find records that match given conditions
-func (s *DB) Find(out interface{}, where ...interface{}) *DB {
-	return s.NewScope(out).inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
+func (s *DB) Find(ctx context.Context, out interface{}, where ...interface{}) *DB {
+	return s.NewScope(ctx, out).inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
 // Scan scan value to a struct
-func (s *DB) Scan(dest interface{}) *DB {
-	return s.NewScope(s.Value).Set("gorm:query_destination", dest).callCallbacks(s.parent.callbacks.queries).db
+func (s *DB) Scan(ctx context.Context, dest interface{}) *DB {
+	return s.NewScope(ctx, s.Value).Set("gorm:query_destination", dest).callCallbacks(s.parent.callbacks.queries).db
 }
 
 // Row return `*sql.Row` with given conditions
-func (s *DB) Row() *sql.Row {
-	return s.NewScope(s.Value).row()
+func (s *DB) Row(ctx context.Context) *sql.Row {
+	return s.NewScope(ctx, s.Value).row()
 }
 
 // Rows return `*sql.Rows` with given conditions
-func (s *DB) Rows() (*sql.Rows, error) {
-	return s.NewScope(s.Value).rows()
+func (s *DB) Rows(ctx context.Context) (*sql.Rows, error) {
+	return s.NewScope(ctx, s.Value).rows()
 }
 
 // ScanRows scan `*sql.Rows` to give struct
-func (s *DB) ScanRows(rows *sql.Rows, result interface{}) error {
+func (s *DB) ScanRows(ctx context.Context, rows *sql.Rows, result interface{}) error {
 	var (
-		scope        = s.NewScope(result)
+		scope        = s.NewScope(ctx, result)
 		clone        = scope.db
 		columns, err = rows.Columns()
 	)
@@ -342,71 +343,71 @@ func (s *DB) ScanRows(rows *sql.Rows, result interface{}) error {
 // Pluck used to query single column from a model as a map
 //     var ages []int64
 //     db.Find(&users).Pluck("age", &ages)
-func (s *DB) Pluck(column string, value interface{}) *DB {
-	return s.NewScope(s.Value).pluck(column, value).db
+func (s *DB) Pluck(ctx context.Context, column string, value interface{}) *DB {
+	return s.NewScope(ctx, s.Value).pluck(column, value).db
 }
 
 // Count get how many records for a model
-func (s *DB) Count(value interface{}) *DB {
-	return s.NewScope(s.Value).count(value).db
+func (s *DB) Count(ctx context.Context, value interface{}) *DB {
+	return s.NewScope(ctx, s.Value).count(value).db
 }
 
 // Related get related associations
-func (s *DB) Related(value interface{}, foreignKeys ...string) *DB {
-	return s.NewScope(s.Value).related(value, foreignKeys...).db
+func (s *DB) Related(ctx context.Context, value interface{}, foreignKeys ...string) *DB {
+	return s.NewScope(ctx, s.Value).related(value, foreignKeys...).db
 }
 
 // FirstOrInit find first matched record or initialize a new one with given conditions (only works with struct, map conditions)
 // https://jinzhu.github.io/gorm/crud.html#firstorinit
-func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
+func (s *DB) FirstOrInit(ctx context.Context, out interface{}, where ...interface{}) *DB {
 	c := s.clone()
-	if result := c.First(out, where...); result.Error != nil {
+	if result := c.First(ctx, out, where...); result.Error != nil {
 		if !result.RecordNotFound() {
 			return result
 		}
-		c.NewScope(out).inlineCondition(where...).initialize()
+		c.NewScope(ctx, out).inlineCondition(where...).initialize()
 	} else {
-		c.NewScope(out).updatedAttrsWithValues(c.search.assignAttrs)
+		c.NewScope(ctx, out).updatedAttrsWithValues(c.search.assignAttrs)
 	}
 	return c
 }
 
 // FirstOrCreate find first matched record or create a new one with given conditions (only works with struct, map conditions)
 // https://jinzhu.github.io/gorm/crud.html#firstorcreate
-func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
+func (s *DB) FirstOrCreate(ctx context.Context, out interface{}, where ...interface{}) *DB {
 	c := s.clone()
-	if result := s.First(out, where...); result.Error != nil {
+	if result := s.First(ctx, out, where...); result.Error != nil {
 		if !result.RecordNotFound() {
 			return result
 		}
-		return c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(c.parent.callbacks.creates).db
+		return c.NewScope(ctx, out).inlineCondition(where...).initialize().callCallbacks(c.parent.callbacks.creates).db
 	} else if len(c.search.assignAttrs) > 0 {
-		return c.NewScope(out).InstanceSet("gorm:update_interface", c.search.assignAttrs).callCallbacks(c.parent.callbacks.updates).db
+		return c.NewScope(ctx, out).InstanceSet("gorm:update_interface", c.search.assignAttrs).callCallbacks(c.parent.callbacks.updates).db
 	}
 	return c
 }
 
 // Update update attributes with callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
-func (s *DB) Update(attrs ...interface{}) *DB {
-	return s.Updates(toSearchableMap(attrs...), true)
+func (s *DB) Update(ctx context.Context, attrs ...interface{}) *DB {
+	return s.Updates(ctx, toSearchableMap(attrs...), true)
 }
 
 // Updates update attributes with callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
-func (s *DB) Updates(values interface{}, ignoreProtectedAttrs ...bool) *DB {
-	return s.NewScope(s.Value).
+func (s *DB) Updates(ctx context.Context, values interface{}, ignoreProtectedAttrs ...bool) *DB {
+	return s.NewScope(ctx, s.Value).
 		Set("gorm:ignore_protected_attrs", len(ignoreProtectedAttrs) > 0).
 		InstanceSet("gorm:update_interface", values).
 		callCallbacks(s.parent.callbacks.updates).db
 }
 
 // UpdateColumn update attributes without callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
-func (s *DB) UpdateColumn(attrs ...interface{}) *DB {
-	return s.UpdateColumns(toSearchableMap(attrs...))
+func (s *DB) UpdateColumn(ctx context.Context, attrs ...interface{}) *DB {
+	return s.UpdateColumns(ctx, toSearchableMap(attrs...))
 }
 
 // UpdateColumns update attributes without callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
-func (s *DB) UpdateColumns(values interface{}) *DB {
-	return s.NewScope(s.Value).
+func (s *DB) UpdateColumns(ctx context.Context, values interface{}) *DB {
+	return s.NewScope(ctx, s.Value).
 		Set("gorm:update_column", true).
 		Set("gorm:save_associations", false).
 		InstanceSet("gorm:update_interface", values).
@@ -414,12 +415,12 @@ func (s *DB) UpdateColumns(values interface{}) *DB {
 }
 
 // Save update value in database, if the value doesn't have primary key, will insert it
-func (s *DB) Save(value interface{}) *DB {
-	scope := s.NewScope(value)
+func (s *DB) Save(ctx context.Context, value interface{}) *DB {
+	scope := s.NewScope(ctx, value)
 	if !scope.PrimaryKeyZero() {
 		newDB := scope.callCallbacks(s.parent.callbacks.updates).db
 		if newDB.Error == nil && newDB.RowsAffected == 0 {
-			return s.New().FirstOrCreate(value)
+			return s.New().FirstOrCreate(ctx, value)
 		}
 		return newDB
 	}
@@ -427,14 +428,14 @@ func (s *DB) Save(value interface{}) *DB {
 }
 
 // Create insert the value into database
-func (s *DB) Create(value interface{}) *DB {
-	scope := s.NewScope(value)
+func (s *DB) Create(ctx context.Context, value interface{}) *DB {
+	scope := s.NewScope(ctx, value)
 	return scope.callCallbacks(s.parent.callbacks.creates).db
 }
 
 // Delete delete value match given conditions, if the value has primary key, then will including the primary key as condition
-func (s *DB) Delete(value interface{}, where ...interface{}) *DB {
-	return s.NewScope(value).inlineCondition(where...).callCallbacks(s.parent.callbacks.deletes).db
+func (s *DB) Delete(ctx context.Context, value interface{}, where ...interface{}) *DB {
+	return s.NewScope(ctx, value).inlineCondition(where...).callCallbacks(s.parent.callbacks.deletes).db
 }
 
 // Raw use raw sql as conditions, won't run it unless invoked by other methods
@@ -444,8 +445,8 @@ func (s *DB) Raw(sql string, values ...interface{}) *DB {
 }
 
 // Exec execute raw sql
-func (s *DB) Exec(sql string, values ...interface{}) *DB {
-	scope := s.NewScope(nil)
+func (s *DB) Exec(ctx context.Context, sql string, values ...interface{}) *DB {
+	scope := s.NewScope(ctx, nil)
 	generatedSQL := scope.buildCondition(map[string]interface{}{"query": sql, "args": values}, true)
 	generatedSQL = strings.TrimSuffix(strings.TrimPrefix(generatedSQL, "("), ")")
 	scope.Raw(generatedSQL)
@@ -511,8 +512,8 @@ func (s *DB) Rollback() *DB {
 }
 
 // NewRecord check if value's primary key is blank
-func (s *DB) NewRecord(value interface{}) bool {
-	return s.NewScope(value).PrimaryKeyZero()
+func (s *DB) NewRecord(ctx context.Context, value interface{}) bool {
+	return s.NewScope(ctx, value).PrimaryKeyZero()
 }
 
 // RecordNotFound check if returning ErrRecordNotFound error
@@ -529,7 +530,7 @@ func (s *DB) RecordNotFound() bool {
 func (s *DB) CreateTable(models ...interface{}) *DB {
 	db := s.Unscoped()
 	for _, model := range models {
-		db = db.NewScope(model).createTable().db
+		db = db.NewScope(context.Background(), model).createTable().db
 	}
 	return db
 }
@@ -542,7 +543,7 @@ func (s *DB) DropTable(values ...interface{}) *DB {
 			db = db.Table(tableName)
 		}
 
-		db = db.NewScope(value).dropTable().db
+		db = db.NewScope(context.Background(), value).dropTable().db
 	}
 	return db
 }
@@ -552,7 +553,7 @@ func (s *DB) DropTableIfExists(values ...interface{}) *DB {
 	db := s.clone()
 	for _, value := range values {
 		if s.HasTable(value) {
-			db.AddError(s.DropTable(value).Error)
+			db.AddError(s.DropTable(context.Background(), value).Error)
 		}
 	}
 	return db
@@ -561,7 +562,7 @@ func (s *DB) DropTableIfExists(values ...interface{}) *DB {
 // HasTable check has table or not
 func (s *DB) HasTable(value interface{}) bool {
 	var (
-		scope     = s.NewScope(value)
+		scope     = s.NewScope(context.Background(), value)
 		tableName string
 	)
 
@@ -580,42 +581,42 @@ func (s *DB) HasTable(value interface{}) bool {
 func (s *DB) AutoMigrate(values ...interface{}) *DB {
 	db := s.Unscoped()
 	for _, value := range values {
-		db = db.NewScope(value).autoMigrate().db
+		db = db.NewScope(context.Background(), value).autoMigrate().db
 	}
 	return db
 }
 
 // ModifyColumn modify column to type
 func (s *DB) ModifyColumn(column string, typ string) *DB {
-	scope := s.NewScope(s.Value)
+	scope := s.NewScope(context.Background(), s.Value)
 	scope.modifyColumn(column, typ)
 	return scope.db
 }
 
 // DropColumn drop a column
 func (s *DB) DropColumn(column string) *DB {
-	scope := s.NewScope(s.Value)
+	scope := s.NewScope(context.Background(), s.Value)
 	scope.dropColumn(column)
 	return scope.db
 }
 
 // AddIndex add index for columns with given name
 func (s *DB) AddIndex(indexName string, columns ...string) *DB {
-	scope := s.Unscoped().NewScope(s.Value)
+	scope := s.Unscoped().NewScope(context.Background(), s.Value)
 	scope.addIndex(false, indexName, columns...)
 	return scope.db
 }
 
 // AddUniqueIndex add unique index for columns with given name
 func (s *DB) AddUniqueIndex(indexName string, columns ...string) *DB {
-	scope := s.Unscoped().NewScope(s.Value)
+	scope := s.Unscoped().NewScope(context.Background(), s.Value)
 	scope.addIndex(true, indexName, columns...)
 	return scope.db
 }
 
 // RemoveIndex remove index with name
 func (s *DB) RemoveIndex(indexName string) *DB {
-	scope := s.NewScope(s.Value)
+	scope := s.NewScope(context.Background(), s.Value)
 	scope.removeIndex(indexName)
 	return scope.db
 }
@@ -623,7 +624,7 @@ func (s *DB) RemoveIndex(indexName string) *DB {
 // AddForeignKey Add foreign key to the given scope, e.g:
 //     db.Model(&User{}).AddForeignKey("city_id", "cities(id)", "RESTRICT", "RESTRICT")
 func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate string) *DB {
-	scope := s.NewScope(s.Value)
+	scope := s.NewScope(context.Background(), s.Value)
 	scope.addForeignKey(field, dest, onDelete, onUpdate)
 	return scope.db
 }
@@ -631,7 +632,7 @@ func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate 
 // RemoveForeignKey Remove foreign key from the given scope, e.g:
 //     db.Model(&User{}).RemoveForeignKey("city_id", "cities(id)")
 func (s *DB) RemoveForeignKey(field string, dest string) *DB {
-	scope := s.clone().NewScope(s.Value)
+	scope := s.clone().NewScope(context.Background(), s.Value)
 	scope.removeForeignKey(field, dest)
 	return scope.db
 }
@@ -639,7 +640,7 @@ func (s *DB) RemoveForeignKey(field string, dest string) *DB {
 // Association start `Association Mode` to handler relations things easir in that mode, refer: https://jinzhu.github.io/gorm/associations.html#association-mode
 func (s *DB) Association(column string) *Association {
 	var err error
-	var scope = s.Set("gorm:association:source", s.Value).NewScope(s.Value)
+	var scope = s.Set("gorm:association:source", s.Value).NewScope(context.Background(), s.Value)
 
 	if primaryField := scope.PrimaryField(); primaryField.IsBlank {
 		err = errors.New("primary key can't be nil")
@@ -683,7 +684,7 @@ func (s *DB) Get(name string) (value interface{}, ok bool) {
 
 // SetJoinTableHandler set a model's join table handler for a relation
 func (s *DB) SetJoinTableHandler(source interface{}, column string, handler JoinTableHandlerInterface) {
-	scope := s.NewScope(source)
+	scope := s.NewScope(context.Background(), source)
 	for _, field := range scope.GetModelStruct().StructFields {
 		if field.Name == column || field.DBName == column {
 			if many2many := field.TagSettings["MANY2MANY"]; many2many != "" {

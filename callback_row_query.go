@@ -1,6 +1,10 @@
 package gorm
 
-import "database/sql"
+import (
+	"database/sql"
+	"context"
+	"github.com/aws/aws-xray-sdk-go/xray"
+)
 
 // Define callbacks for row query
 func init() {
@@ -22,9 +26,30 @@ func rowQueryCallback(scope *Scope) {
 		scope.prepareQuerySQL()
 
 		if rowResult, ok := result.(*RowQueryResult); ok {
-			rowResult.Row = scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...)
+			xray.Capture(scope.ctx, "xgorm", func(ctx context.Context) error {
+				seg := xray.GetSegment(ctx)
+
+				seg.Lock()
+				seg.Namespace = "remote"
+				seg.GetSQL().SanitizedQuery = scope.SQL
+				seg.Unlock()
+
+				rowResult.Row = scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...)
+				return nil
+			})
 		} else if rowsResult, ok := result.(*RowsQueryResult); ok {
-			rowsResult.Rows, rowsResult.Error = scope.SQLDB().Query(scope.SQL, scope.SQLVars...)
+			rowsResult.Error = xray.Capture(scope.ctx, "xgorm", func(ctx context.Context) error {
+				seg := xray.GetSegment(ctx)
+
+				seg.Lock()
+				seg.Namespace = "remote"
+				seg.GetSQL().SanitizedQuery = scope.SQL
+				seg.Unlock()
+
+				var err error
+				rowsResult.Rows, err = scope.SQLDB().Query(scope.SQL, scope.SQLVars...)
+				return err
+			})
 		}
 	}
 }

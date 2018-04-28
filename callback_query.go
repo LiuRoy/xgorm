@@ -4,6 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"github.com/aws/aws-xray-sdk-go/xray"
+	"context"
+	"database/sql"
 )
 
 // Define callbacks for querying
@@ -59,7 +62,20 @@ func queryCallback(scope *Scope) {
 			scope.SQL += addExtraSpaceIfExist(fmt.Sprint(str))
 		}
 
-		if rows, err := scope.SQLDB().Query(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
+		var rows *sql.Rows
+		err := xray.Capture(scope.ctx, "xgorm", func(ctx context.Context) error {
+			seg := xray.GetSegment(ctx)
+
+			seg.Lock()
+			seg.Namespace = "remote"
+			seg.GetSQL().SanitizedQuery = scope.SQL
+			seg.Unlock()
+
+			var err error
+			rows, err = scope.SQLDB().Query(scope.SQL, scope.SQLVars...)
+			return err
+		})
+		if scope.Err(err) == nil {
 			defer rows.Close()
 
 			columns, _ := rows.Columns()

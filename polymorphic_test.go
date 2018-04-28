@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"context"
 )
 
 type Cat struct {
@@ -45,7 +46,7 @@ var compareToys = func(toys []Toy, contents []string) bool {
 func TestPolymorphic(t *testing.T) {
 	cat := Cat{Name: "Mr. Bigglesworth", Toy: Toy{Name: "cat toy"}}
 	dog := Dog{Name: "Pluto", Toys: []Toy{{Name: "dog toy 1"}, {Name: "dog toy 2"}}}
-	DB.Save(&cat).Save(&dog)
+	DB.Save(context.Background(), &cat).Save(context.Background(), &dog)
 
 	if DB.Model(&cat).Association("Toy").Count() != 1 {
 		t.Errorf("Cat's toys count should be 1")
@@ -57,7 +58,7 @@ func TestPolymorphic(t *testing.T) {
 
 	// Query
 	var catToys []Toy
-	if DB.Model(&cat).Related(&catToys, "Toy").RecordNotFound() {
+	if DB.Model(&cat).Related(context.Background(), &catToys, "Toy").RecordNotFound() {
 		t.Errorf("Did not find any has one polymorphic association")
 	} else if len(catToys) != 1 {
 		t.Errorf("Should have found only one polymorphic has one association")
@@ -66,7 +67,7 @@ func TestPolymorphic(t *testing.T) {
 	}
 
 	var dogToys []Toy
-	if DB.Model(&dog).Related(&dogToys, "Toys").RecordNotFound() {
+	if DB.Model(&dog).Related(context.Background(), &dogToys, "Toys").RecordNotFound() {
 		t.Errorf("Did not find any polymorphic has many associations")
 	} else if len(dogToys) != len(dog.Toys) {
 		t.Errorf("Should have found all polymorphic has many associations")
@@ -171,7 +172,7 @@ func TestPolymorphic(t *testing.T) {
 
 	DB.Model(&cat).Association("Toy").Delete(&catToy3)
 
-	if !DB.Model(&cat).Related(&Toy{}, "Toy").RecordNotFound() {
+	if !DB.Model(&cat).Related(context.Background(), &Toy{}, "Toy").RecordNotFound() {
 		t.Errorf("Toy should be deleted with Delete")
 	}
 
@@ -227,10 +228,10 @@ func TestPolymorphic(t *testing.T) {
 
 func TestNamedPolymorphic(t *testing.T) {
 	hamster := Hamster{Name: "Mr. Hammond", PreferredToy: Toy{Name: "bike"}, OtherToy: Toy{Name: "treadmill"}}
-	DB.Save(&hamster)
+	DB.Save(context.Background(), &hamster)
 
 	hamster2 := Hamster{}
-	DB.Preload("PreferredToy").Preload("OtherToy").Find(&hamster2, hamster.Id)
+	DB.Preload("PreferredToy").Preload("OtherToy").Find(context.Background(), &hamster2, hamster.Id)
 	if hamster2.PreferredToy.Id != hamster.PreferredToy.Id || hamster2.PreferredToy.Name != hamster.PreferredToy.Name {
 		t.Errorf("Hamster's preferred toy couldn't be preloaded")
 	}
@@ -252,7 +253,7 @@ func TestNamedPolymorphic(t *testing.T) {
 
 	// Query
 	var hamsterToys []Toy
-	if DB.Model(&hamster).Related(&hamsterToys, "PreferredToy").RecordNotFound() {
+	if DB.Model(&hamster).Related(context.Background(), &hamsterToys, "PreferredToy").RecordNotFound() {
 		t.Errorf("Did not find any has one polymorphic association")
 	} else if len(hamsterToys) != 1 {
 		t.Errorf("Should have found only one polymorphic has one association")
@@ -260,7 +261,7 @@ func TestNamedPolymorphic(t *testing.T) {
 		t.Errorf("Should have found the proper has one polymorphic association")
 	}
 
-	if DB.Model(&hamster).Related(&hamsterToys, "OtherToy").RecordNotFound() {
+	if DB.Model(&hamster).Related(context.Background(), &hamsterToys, "OtherToy").RecordNotFound() {
 		t.Errorf("Did not find any has one polymorphic association")
 	} else if len(hamsterToys) != 1 {
 		t.Errorf("Should have found only one polymorphic has one association")

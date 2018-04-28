@@ -146,7 +146,7 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 	}
 
 	results := makeSlice(field.Struct.Type)
-	scope.Err(preloadDB.Where(query, values...).Find(results, preloadConditions...).Error)
+	scope.Err(preloadDB.Where(query, values...).Find(scope.ctx, results, preloadConditions...).Error)
 
 	// assign find results
 	var (
@@ -195,7 +195,7 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 	}
 
 	results := makeSlice(field.Struct.Type)
-	scope.Err(preloadDB.Where(query, values...).Find(results, preloadConditions...).Error)
+	scope.Err(preloadDB.Where(query, values...).Find(scope.ctx, results, preloadConditions...).Error)
 
 	// assign find results
 	var (
@@ -241,7 +241,7 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 
 	// find relations
 	results := makeSlice(field.Struct.Type)
-	scope.Err(preloadDB.Where(fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relation.AssociationForeignDBNames), toQueryMarks(primaryKeys)), toQueryValues(primaryKeys)...).Find(results, preloadConditions...).Error)
+	scope.Err(preloadDB.Where(fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relation.AssociationForeignDBNames), toQueryMarks(primaryKeys)), toQueryValues(primaryKeys)...).Find(scope.ctx, results, preloadConditions...).Error)
 
 	// assign find results
 	var (
@@ -305,7 +305,7 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		preloadDB = preloadDB.Where(preloadConditions[0], preloadConditions[1:]...)
 	}
 
-	rows, err := preloadDB.Rows()
+	rows, err := preloadDB.Rows(scope.ctx)
 
 	if scope.Err(err) != nil {
 		return
