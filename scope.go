@@ -365,7 +365,7 @@ func (scope *Scope) Exec() *Scope {
 
 	if !scope.HasError() {
 		var result sql.Result
-		err := xray.Capture(scope.ctx, "xgorm", func(ctx context.Context) error {
+		err := xray.Capture(scope.ctx, scope.TableName(), func(ctx context.Context) error {
 			seg := xray.GetSegment(ctx)
 
 			seg.Lock()
