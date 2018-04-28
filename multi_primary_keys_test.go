@@ -57,12 +57,12 @@ func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
 
 		// Append
 		var tag3 = &Tag{Locale: "ZH", Value: "tag3"}
-		DB.Model(&blog).Association("Tags").Append([]*Tag{tag3})
+		DB.Model(&blog).Association(context.Background(), "Tags").Append([]*Tag{tag3})
 		if !compareTags(blog.Tags, []string{"tag1", "tag2", "tag3"}) {
 			t.Errorf("Blog should has three tags after Append")
 		}
 
-		if DB.Model(&blog).Association("Tags").Count() != 3 {
+		if DB.Model(&blog).Association(context.Background(), "Tags").Count() != 3 {
 			t.Errorf("Blog should has three tags after Append")
 		}
 
@@ -81,30 +81,30 @@ func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
 		// Replace
 		var tag5 = &Tag{Locale: "ZH", Value: "tag5"}
 		var tag6 = &Tag{Locale: "ZH", Value: "tag6"}
-		DB.Model(&blog).Association("Tags").Replace(tag5, tag6)
+		DB.Model(&blog).Association(context.Background(), "Tags").Replace(tag5, tag6)
 		var tags2 []Tag
 		DB.Model(&blog).Related(context.Background(),&tags2, "Tags")
 		if !compareTags(tags2, []string{"tag5", "tag6"}) {
 			t.Errorf("Should find 2 tags after Replace")
 		}
 
-		if DB.Model(&blog).Association("Tags").Count() != 2 {
+		if DB.Model(&blog).Association(context.Background(), "Tags").Count() != 2 {
 			t.Errorf("Blog should has three tags after Replace")
 		}
 
 		// Delete
-		DB.Model(&blog).Association("Tags").Delete(tag5)
+		DB.Model(&blog).Association(context.Background(), "Tags").Delete(tag5)
 		var tags3 []Tag
 		DB.Model(&blog).Related(context.Background(),&tags3, "Tags")
 		if !compareTags(tags3, []string{"tag6"}) {
 			t.Errorf("Should find 1 tags after Delete")
 		}
 
-		if DB.Model(&blog).Association("Tags").Count() != 1 {
+		if DB.Model(&blog).Association(context.Background(), "Tags").Count() != 1 {
 			t.Errorf("Blog should has three tags after Delete")
 		}
 
-		DB.Model(&blog).Association("Tags").Delete(tag3)
+		DB.Model(&blog).Association(context.Background(), "Tags").Delete(tag3)
 		var tags4 []Tag
 		DB.Model(&blog).Related(context.Background(),&tags4, "Tags")
 		if !compareTags(tags4, []string{"tag6"}) {
@@ -112,8 +112,8 @@ func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
 		}
 
 		// Clear
-		DB.Model(&blog).Association("Tags").Clear()
-		if DB.Model(&blog).Association("Tags").Count() != 0 {
+		DB.Model(&blog).Association(context.Background(), "Tags").Clear()
+		if DB.Model(&blog).Association(context.Background(), "Tags").Count() != 0 {
 			t.Errorf("All tags should be cleared")
 		}
 	}
@@ -147,16 +147,16 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 
 		// Append
 		var tag3 = &Tag{Locale: "ZH", Value: "tag3"}
-		DB.Model(&blog).Association("SharedTags").Append([]*Tag{tag3})
+		DB.Model(&blog).Association(context.Background(), "SharedTags").Append([]*Tag{tag3})
 		if !compareTags(blog.SharedTags, []string{"tag1", "tag2", "tag3"}) {
 			t.Errorf("Blog should has three tags after Append")
 		}
 
-		if DB.Model(&blog).Association("SharedTags").Count() != 3 {
+		if DB.Model(&blog).Association(context.Background(), "SharedTags").Count() != 3 {
 			t.Errorf("Blog should has three tags after Append")
 		}
 
-		if DB.Model(&blog2).Association("SharedTags").Count() != 3 {
+		if DB.Model(&blog2).Association(context.Background(), "SharedTags").Count() != 3 {
 			t.Errorf("Blog should has three tags after Append")
 		}
 
@@ -178,7 +178,7 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 		}
 
 		var tag4 = &Tag{Locale: "ZH", Value: "tag4"}
-		DB.Model(&blog2).Association("SharedTags").Append(tag4)
+		DB.Model(&blog2).Association(context.Background(), "SharedTags").Append(tag4)
 
 		DB.Model(&blog).Related(context.Background(),&tags, "SharedTags")
 		if !compareTags(tags, []string{"tag1", "tag2", "tag3", "tag4"}) {
@@ -193,7 +193,7 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 		// Replace
 		var tag5 = &Tag{Locale: "ZH", Value: "tag5"}
 		var tag6 = &Tag{Locale: "ZH", Value: "tag6"}
-		DB.Model(&blog2).Association("SharedTags").Replace(tag5, tag6)
+		DB.Model(&blog2).Association(context.Background(), "SharedTags").Replace(tag5, tag6)
 		var tags2 []Tag
 		DB.Model(&blog).Related(context.Background(),&tags2, "SharedTags")
 		if !compareTags(tags2, []string{"tag5", "tag6"}) {
@@ -205,23 +205,23 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 			t.Errorf("Should find 2 tags after Replace")
 		}
 
-		if DB.Model(&blog).Association("SharedTags").Count() != 2 {
+		if DB.Model(&blog).Association(context.Background(), "SharedTags").Count() != 2 {
 			t.Errorf("Blog should has three tags after Replace")
 		}
 
 		// Delete
-		DB.Model(&blog).Association("SharedTags").Delete(tag5)
+		DB.Model(&blog).Association(context.Background(), "SharedTags").Delete(tag5)
 		var tags3 []Tag
 		DB.Model(&blog).Related(context.Background(),&tags3, "SharedTags")
 		if !compareTags(tags3, []string{"tag6"}) {
 			t.Errorf("Should find 1 tags after Delete")
 		}
 
-		if DB.Model(&blog).Association("SharedTags").Count() != 1 {
+		if DB.Model(&blog).Association(context.Background(), "SharedTags").Count() != 1 {
 			t.Errorf("Blog should has three tags after Delete")
 		}
 
-		DB.Model(&blog2).Association("SharedTags").Delete(tag3)
+		DB.Model(&blog2).Association(context.Background(), "SharedTags").Delete(tag3)
 		var tags4 []Tag
 		DB.Model(&blog).Related(context.Background(),&tags4, "SharedTags")
 		if !compareTags(tags4, []string{"tag6"}) {
@@ -229,8 +229,8 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 		}
 
 		// Clear
-		DB.Model(&blog2).Association("SharedTags").Clear()
-		if DB.Model(&blog).Association("SharedTags").Count() != 0 {
+		DB.Model(&blog2).Association(context.Background(), "SharedTags").Clear()
+		if DB.Model(&blog).Association(context.Background(), "SharedTags").Count() != 0 {
 			t.Errorf("All tags should be cleared")
 		}
 	}
@@ -260,16 +260,16 @@ func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
 
 		// Append
 		var tag3 = &Tag{Locale: "ZH", Value: "tag3"}
-		DB.Model(&blog).Association("LocaleTags").Append([]*Tag{tag3})
+		DB.Model(&blog).Association(context.Background(), "LocaleTags").Append([]*Tag{tag3})
 		if !compareTags(blog.LocaleTags, []string{"tag1", "tag2", "tag3"}) {
 			t.Errorf("Blog should has three tags after Append")
 		}
 
-		if DB.Model(&blog).Association("LocaleTags").Count() != 3 {
+		if DB.Model(&blog).Association(context.Background(), "LocaleTags").Count() != 3 {
 			t.Errorf("Blog should has three tags after Append")
 		}
 
-		if DB.Model(&blog2).Association("LocaleTags").Count() != 0 {
+		if DB.Model(&blog2).Association(context.Background(), "LocaleTags").Count() != 0 {
 			t.Errorf("EN Blog should has 0 tags after ZH Blog Append")
 		}
 
@@ -291,7 +291,7 @@ func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
 		}
 
 		var tag4 = &Tag{Locale: "ZH", Value: "tag4"}
-		DB.Model(&blog2).Association("LocaleTags").Append(tag4)
+		DB.Model(&blog2).Association(context.Background(), "LocaleTags").Append(tag4)
 
 		DB.Model(&blog).Related(context.Background(),&tags, "LocaleTags")
 		if !compareTags(tags, []string{"tag1", "tag2", "tag3"}) {
@@ -306,7 +306,7 @@ func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
 		// Replace
 		var tag5 = &Tag{Locale: "ZH", Value: "tag5"}
 		var tag6 = &Tag{Locale: "ZH", Value: "tag6"}
-		DB.Model(&blog2).Association("LocaleTags").Replace(tag5, tag6)
+		DB.Model(&blog2).Association(context.Background(), "LocaleTags").Replace(tag5, tag6)
 
 		var tags2 []Tag
 		DB.Model(&blog).Related(context.Background(), &tags2, "LocaleTags")
@@ -331,51 +331,51 @@ func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
 			t.Errorf("EN Blog's tags should be changed after Replace")
 		}
 
-		if DB.Model(&blog).Association("LocaleTags").Count() != 3 {
+		if DB.Model(&blog).Association(context.Background(), "LocaleTags").Count() != 3 {
 			t.Errorf("ZH Blog should has three tags after Replace")
 		}
 
-		if DB.Model(&blog2).Association("LocaleTags").Count() != 2 {
+		if DB.Model(&blog2).Association(context.Background(), "LocaleTags").Count() != 2 {
 			t.Errorf("EN Blog should has two tags after Replace")
 		}
 
 		// Delete
-		DB.Model(&blog).Association("LocaleTags").Delete(tag5)
+		DB.Model(&blog).Association(context.Background(), "LocaleTags").Delete(tag5)
 
-		if DB.Model(&blog).Association("LocaleTags").Count() != 3 {
+		if DB.Model(&blog).Association(context.Background(), "LocaleTags").Count() != 3 {
 			t.Errorf("ZH Blog should has three tags after Delete with EN's tag")
 		}
 
-		if DB.Model(&blog2).Association("LocaleTags").Count() != 2 {
+		if DB.Model(&blog2).Association(context.Background(), "LocaleTags").Count() != 2 {
 			t.Errorf("EN Blog should has two tags after ZH Blog Delete with EN's tag")
 		}
 
-		DB.Model(&blog2).Association("LocaleTags").Delete(tag5)
+		DB.Model(&blog2).Association(context.Background(), "LocaleTags").Delete(tag5)
 
-		if DB.Model(&blog).Association("LocaleTags").Count() != 3 {
+		if DB.Model(&blog).Association(context.Background(), "LocaleTags").Count() != 3 {
 			t.Errorf("ZH Blog should has three tags after EN Blog Delete with EN's tag")
 		}
 
-		if DB.Model(&blog2).Association("LocaleTags").Count() != 1 {
+		if DB.Model(&blog2).Association(context.Background(), "LocaleTags").Count() != 1 {
 			t.Errorf("EN Blog should has 1 tags after EN Blog Delete with EN's tag")
 		}
 
 		// Clear
-		DB.Model(&blog2).Association("LocaleTags").Clear()
-		if DB.Model(&blog).Association("LocaleTags").Count() != 3 {
+		DB.Model(&blog2).Association(context.Background(), "LocaleTags").Clear()
+		if DB.Model(&blog).Association(context.Background(), "LocaleTags").Count() != 3 {
 			t.Errorf("ZH Blog's tags should not be cleared when clear EN Blog's tags")
 		}
 
-		if DB.Model(&blog2).Association("LocaleTags").Count() != 0 {
+		if DB.Model(&blog2).Association(context.Background(), "LocaleTags").Count() != 0 {
 			t.Errorf("EN Blog's tags should be cleared when clear EN Blog's tags")
 		}
 
-		DB.Model(&blog).Association("LocaleTags").Clear()
-		if DB.Model(&blog).Association("LocaleTags").Count() != 0 {
+		DB.Model(&blog).Association(context.Background(), "LocaleTags").Clear()
+		if DB.Model(&blog).Association(context.Background(), "LocaleTags").Count() != 0 {
 			t.Errorf("ZH Blog's tags should be cleared when clear ZH Blog's tags")
 		}
 
-		if DB.Model(&blog2).Association("LocaleTags").Count() != 0 {
+		if DB.Model(&blog2).Association(context.Background(), "LocaleTags").Count() != 0 {
 			t.Errorf("EN Blog's tags should be cleared")
 		}
 	}

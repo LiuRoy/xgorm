@@ -48,11 +48,11 @@ func TestPolymorphic(t *testing.T) {
 	dog := Dog{Name: "Pluto", Toys: []Toy{{Name: "dog toy 1"}, {Name: "dog toy 2"}}}
 	DB.Save(context.Background(), &cat).Save(context.Background(), &dog)
 
-	if DB.Model(&cat).Association("Toy").Count() != 1 {
+	if DB.Model(&cat).Association(context.Background(), "Toy").Count() != 1 {
 		t.Errorf("Cat's toys count should be 1")
 	}
 
-	if DB.Model(&dog).Association("Toys").Count() != 2 {
+	if DB.Model(&dog).Association(context.Background(), "Toys").Count() != 2 {
 		t.Errorf("Dog's toys count should be 2")
 	}
 
@@ -74,154 +74,154 @@ func TestPolymorphic(t *testing.T) {
 	}
 
 	var catToy Toy
-	DB.Model(&cat).Association("Toy").Find(&catToy)
+	DB.Model(&cat).Association(context.Background(), "Toy").Find(&catToy)
 	if catToy.Name != cat.Toy.Name {
 		t.Errorf("Should find has one polymorphic association")
 	}
 
 	var dogToys1 []Toy
-	DB.Model(&dog).Association("Toys").Find(&dogToys1)
+	DB.Model(&dog).Association(context.Background(), "Toys").Find(&dogToys1)
 	if !compareToys(dogToys1, []string{"dog toy 1", "dog toy 2"}) {
 		t.Errorf("Should find has many polymorphic association")
 	}
 
 	// Append
-	DB.Model(&cat).Association("Toy").Append(&Toy{
+	DB.Model(&cat).Association(context.Background(), "Toy").Append(&Toy{
 		Name: "cat toy 2",
 	})
 
 	var catToy2 Toy
-	DB.Model(&cat).Association("Toy").Find(&catToy2)
+	DB.Model(&cat).Association(context.Background(), "Toy").Find(&catToy2)
 	if catToy2.Name != "cat toy 2" {
 		t.Errorf("Should update has one polymorphic association with Append")
 	}
 
-	if DB.Model(&cat).Association("Toy").Count() != 1 {
+	if DB.Model(&cat).Association(context.Background(), "Toy").Count() != 1 {
 		t.Errorf("Cat's toys count should be 1 after Append")
 	}
 
-	if DB.Model(&dog).Association("Toys").Count() != 2 {
+	if DB.Model(&dog).Association(context.Background(), "Toys").Count() != 2 {
 		t.Errorf("Should return two polymorphic has many associations")
 	}
 
-	DB.Model(&dog).Association("Toys").Append(&Toy{
+	DB.Model(&dog).Association(context.Background(), "Toys").Append(&Toy{
 		Name: "dog toy 3",
 	})
 
 	var dogToys2 []Toy
-	DB.Model(&dog).Association("Toys").Find(&dogToys2)
+	DB.Model(&dog).Association(context.Background(), "Toys").Find(&dogToys2)
 	if !compareToys(dogToys2, []string{"dog toy 1", "dog toy 2", "dog toy 3"}) {
 		t.Errorf("Dog's toys should be updated with Append")
 	}
 
-	if DB.Model(&dog).Association("Toys").Count() != 3 {
+	if DB.Model(&dog).Association(context.Background(), "Toys").Count() != 3 {
 		t.Errorf("Should return three polymorphic has many associations")
 	}
 
 	// Replace
-	DB.Model(&cat).Association("Toy").Replace(&Toy{
+	DB.Model(&cat).Association(context.Background(), "Toy").Replace(&Toy{
 		Name: "cat toy 3",
 	})
 
 	var catToy3 Toy
-	DB.Model(&cat).Association("Toy").Find(&catToy3)
+	DB.Model(&cat).Association(context.Background(), "Toy").Find(&catToy3)
 	if catToy3.Name != "cat toy 3" {
 		t.Errorf("Should update has one polymorphic association with Replace")
 	}
 
-	if DB.Model(&cat).Association("Toy").Count() != 1 {
+	if DB.Model(&cat).Association(context.Background(), "Toy").Count() != 1 {
 		t.Errorf("Cat's toys count should be 1 after Replace")
 	}
 
-	if DB.Model(&dog).Association("Toys").Count() != 3 {
+	if DB.Model(&dog).Association(context.Background(), "Toys").Count() != 3 {
 		t.Errorf("Should return three polymorphic has many associations")
 	}
 
-	DB.Model(&dog).Association("Toys").Replace(&Toy{
+	DB.Model(&dog).Association(context.Background(), "Toys").Replace(&Toy{
 		Name: "dog toy 4",
 	}, []Toy{
 		{Name: "dog toy 5"}, {Name: "dog toy 6"}, {Name: "dog toy 7"},
 	})
 
 	var dogToys3 []Toy
-	DB.Model(&dog).Association("Toys").Find(&dogToys3)
+	DB.Model(&dog).Association(context.Background(), "Toys").Find(&dogToys3)
 	if !compareToys(dogToys3, []string{"dog toy 4", "dog toy 5", "dog toy 6", "dog toy 7"}) {
 		t.Errorf("Dog's toys should be updated with Replace")
 	}
 
-	if DB.Model(&dog).Association("Toys").Count() != 4 {
+	if DB.Model(&dog).Association(context.Background(), "Toys").Count() != 4 {
 		t.Errorf("Should return three polymorphic has many associations")
 	}
 
 	// Delete
-	DB.Model(&cat).Association("Toy").Delete(&catToy2)
+	DB.Model(&cat).Association(context.Background(), "Toy").Delete(&catToy2)
 
 	var catToy4 Toy
-	DB.Model(&cat).Association("Toy").Find(&catToy4)
+	DB.Model(&cat).Association(context.Background(), "Toy").Find(&catToy4)
 	if catToy4.Name != "cat toy 3" {
 		t.Errorf("Should not update has one polymorphic association when Delete a unrelated Toy")
 	}
 
-	if DB.Model(&cat).Association("Toy").Count() != 1 {
+	if DB.Model(&cat).Association(context.Background(), "Toy").Count() != 1 {
 		t.Errorf("Cat's toys count should be 1")
 	}
 
-	if DB.Model(&dog).Association("Toys").Count() != 4 {
+	if DB.Model(&dog).Association(context.Background(), "Toys").Count() != 4 {
 		t.Errorf("Dog's toys count should be 4")
 	}
 
-	DB.Model(&cat).Association("Toy").Delete(&catToy3)
+	DB.Model(&cat).Association(context.Background(), "Toy").Delete(&catToy3)
 
 	if !DB.Model(&cat).Related(context.Background(), &Toy{}, "Toy").RecordNotFound() {
 		t.Errorf("Toy should be deleted with Delete")
 	}
 
-	if DB.Model(&cat).Association("Toy").Count() != 0 {
+	if DB.Model(&cat).Association(context.Background(), "Toy").Count() != 0 {
 		t.Errorf("Cat's toys count should be 0 after Delete")
 	}
 
-	if DB.Model(&dog).Association("Toys").Count() != 4 {
+	if DB.Model(&dog).Association(context.Background(), "Toys").Count() != 4 {
 		t.Errorf("Dog's toys count should not be changed when delete cat's toy")
 	}
 
-	DB.Model(&dog).Association("Toys").Delete(&dogToys2)
+	DB.Model(&dog).Association(context.Background(), "Toys").Delete(&dogToys2)
 
-	if DB.Model(&dog).Association("Toys").Count() != 4 {
+	if DB.Model(&dog).Association(context.Background(), "Toys").Count() != 4 {
 		t.Errorf("Dog's toys count should not be changed when delete unrelated toys")
 	}
 
-	DB.Model(&dog).Association("Toys").Delete(&dogToys3)
+	DB.Model(&dog).Association(context.Background(), "Toys").Delete(&dogToys3)
 
-	if DB.Model(&dog).Association("Toys").Count() != 0 {
+	if DB.Model(&dog).Association(context.Background(), "Toys").Count() != 0 {
 		t.Errorf("Dog's toys count should be deleted with Delete")
 	}
 
 	// Clear
-	DB.Model(&cat).Association("Toy").Append(&Toy{
+	DB.Model(&cat).Association(context.Background(), "Toy").Append(&Toy{
 		Name: "cat toy 2",
 	})
 
-	if DB.Model(&cat).Association("Toy").Count() != 1 {
+	if DB.Model(&cat).Association(context.Background(), "Toy").Count() != 1 {
 		t.Errorf("Cat's toys should be added with Append")
 	}
 
-	DB.Model(&cat).Association("Toy").Clear()
+	DB.Model(&cat).Association(context.Background(), "Toy").Clear()
 
-	if DB.Model(&cat).Association("Toy").Count() != 0 {
+	if DB.Model(&cat).Association(context.Background(), "Toy").Count() != 0 {
 		t.Errorf("Cat's toys should be cleared with Clear")
 	}
 
-	DB.Model(&dog).Association("Toys").Append(&Toy{
+	DB.Model(&dog).Association(context.Background(), "Toys").Append(&Toy{
 		Name: "dog toy 8",
 	})
 
-	if DB.Model(&dog).Association("Toys").Count() != 1 {
+	if DB.Model(&dog).Association(context.Background(), "Toys").Count() != 1 {
 		t.Errorf("Dog's toys should be added with Append")
 	}
 
-	DB.Model(&dog).Association("Toys").Clear()
+	DB.Model(&dog).Association(context.Background(), "Toys").Clear()
 
-	if DB.Model(&dog).Association("Toys").Count() != 0 {
+	if DB.Model(&dog).Association(context.Background(), "Toys").Count() != 0 {
 		t.Errorf("Dog's toys should be cleared with Clear")
 	}
 }
@@ -243,11 +243,11 @@ func TestNamedPolymorphic(t *testing.T) {
 	hamster2.PreferredToy = Toy{}
 	hamster2.OtherToy = Toy{}
 
-	if DB.Model(&hamster2).Association("PreferredToy").Count() != 1 {
+	if DB.Model(&hamster2).Association(context.Background(), "PreferredToy").Count() != 1 {
 		t.Errorf("Hamster's preferred toy count should be 1")
 	}
 
-	if DB.Model(&hamster2).Association("OtherToy").Count() != 1 {
+	if DB.Model(&hamster2).Association(context.Background(), "OtherToy").Count() != 1 {
 		t.Errorf("Hamster's other toy count should be 1")
 	}
 
@@ -270,98 +270,98 @@ func TestNamedPolymorphic(t *testing.T) {
 	}
 
 	hamsterToy := Toy{}
-	DB.Model(&hamster).Association("PreferredToy").Find(&hamsterToy)
+	DB.Model(&hamster).Association(context.Background(), "PreferredToy").Find(&hamsterToy)
 	if hamsterToy.Name != hamster.PreferredToy.Name {
 		t.Errorf("Should find has one polymorphic association")
 	}
 	hamsterToy = Toy{}
-	DB.Model(&hamster).Association("OtherToy").Find(&hamsterToy)
+	DB.Model(&hamster).Association(context.Background(), "OtherToy").Find(&hamsterToy)
 	if hamsterToy.Name != hamster.OtherToy.Name {
 		t.Errorf("Should find has one polymorphic association")
 	}
 
 	// Append
-	DB.Model(&hamster).Association("PreferredToy").Append(&Toy{
+	DB.Model(&hamster).Association(context.Background(), "PreferredToy").Append(&Toy{
 		Name: "bike 2",
 	})
-	DB.Model(&hamster).Association("OtherToy").Append(&Toy{
+	DB.Model(&hamster).Association(context.Background(), "OtherToy").Append(&Toy{
 		Name: "treadmill 2",
 	})
 
 	hamsterToy = Toy{}
-	DB.Model(&hamster).Association("PreferredToy").Find(&hamsterToy)
+	DB.Model(&hamster).Association(context.Background(), "PreferredToy").Find(&hamsterToy)
 	if hamsterToy.Name != "bike 2" {
 		t.Errorf("Should update has one polymorphic association with Append")
 	}
 
 	hamsterToy = Toy{}
-	DB.Model(&hamster).Association("OtherToy").Find(&hamsterToy)
+	DB.Model(&hamster).Association(context.Background(), "OtherToy").Find(&hamsterToy)
 	if hamsterToy.Name != "treadmill 2" {
 		t.Errorf("Should update has one polymorphic association with Append")
 	}
 
-	if DB.Model(&hamster2).Association("PreferredToy").Count() != 1 {
+	if DB.Model(&hamster2).Association(context.Background(), "PreferredToy").Count() != 1 {
 		t.Errorf("Hamster's toys count should be 1 after Append")
 	}
 
-	if DB.Model(&hamster2).Association("OtherToy").Count() != 1 {
+	if DB.Model(&hamster2).Association(context.Background(), "OtherToy").Count() != 1 {
 		t.Errorf("Hamster's toys count should be 1 after Append")
 	}
 
 	// Replace
-	DB.Model(&hamster).Association("PreferredToy").Replace(&Toy{
+	DB.Model(&hamster).Association(context.Background(), "PreferredToy").Replace(&Toy{
 		Name: "bike 3",
 	})
-	DB.Model(&hamster).Association("OtherToy").Replace(&Toy{
+	DB.Model(&hamster).Association(context.Background(), "OtherToy").Replace(&Toy{
 		Name: "treadmill 3",
 	})
 
 	hamsterToy = Toy{}
-	DB.Model(&hamster).Association("PreferredToy").Find(&hamsterToy)
+	DB.Model(&hamster).Association(context.Background(), "PreferredToy").Find(&hamsterToy)
 	if hamsterToy.Name != "bike 3" {
 		t.Errorf("Should update has one polymorphic association with Replace")
 	}
 
 	hamsterToy = Toy{}
-	DB.Model(&hamster).Association("OtherToy").Find(&hamsterToy)
+	DB.Model(&hamster).Association(context.Background(), "OtherToy").Find(&hamsterToy)
 	if hamsterToy.Name != "treadmill 3" {
 		t.Errorf("Should update has one polymorphic association with Replace")
 	}
 
-	if DB.Model(&hamster2).Association("PreferredToy").Count() != 1 {
+	if DB.Model(&hamster2).Association(context.Background(), "PreferredToy").Count() != 1 {
 		t.Errorf("hamster's toys count should be 1 after Replace")
 	}
 
-	if DB.Model(&hamster2).Association("OtherToy").Count() != 1 {
+	if DB.Model(&hamster2).Association(context.Background(), "OtherToy").Count() != 1 {
 		t.Errorf("hamster's toys count should be 1 after Replace")
 	}
 
 	// Clear
-	DB.Model(&hamster).Association("PreferredToy").Append(&Toy{
+	DB.Model(&hamster).Association(context.Background(), "PreferredToy").Append(&Toy{
 		Name: "bike 2",
 	})
-	DB.Model(&hamster).Association("OtherToy").Append(&Toy{
+	DB.Model(&hamster).Association(context.Background(), "OtherToy").Append(&Toy{
 		Name: "treadmill 2",
 	})
 
-	if DB.Model(&hamster).Association("PreferredToy").Count() != 1 {
+	if DB.Model(&hamster).Association(context.Background(), "PreferredToy").Count() != 1 {
 		t.Errorf("Hamster's toys should be added with Append")
 	}
-	if DB.Model(&hamster).Association("OtherToy").Count() != 1 {
+	if DB.Model(&hamster).Association(context.Background(), "OtherToy").Count() != 1 {
 		t.Errorf("Hamster's toys should be added with Append")
 	}
 
-	DB.Model(&hamster).Association("PreferredToy").Clear()
+	DB.Model(&hamster).Association(context.Background(), "PreferredToy").Clear()
 
-	if DB.Model(&hamster2).Association("PreferredToy").Count() != 0 {
+	if DB.Model(&hamster2).Association(context.Background(), "PreferredToy").Count() != 0 {
 		t.Errorf("Hamster's preferred toy should be cleared with Clear")
 	}
-	if DB.Model(&hamster2).Association("OtherToy").Count() != 1 {
+	if DB.Model(&hamster2).Association(context.Background(), "OtherToy").Count() != 1 {
 		t.Errorf("Hamster's other toy should be still available")
 	}
 
-	DB.Model(&hamster).Association("OtherToy").Clear()
-	if DB.Model(&hamster).Association("OtherToy").Count() != 0 {
+	DB.Model(&hamster).Association(context.Background(), "OtherToy").Clear()
+	if DB.Model(&hamster).Association(context.Background(), "OtherToy").Count() != 0 {
 		t.Errorf("Hamster's other toy should be cleared with Clear")
 	}
 }

@@ -638,7 +638,7 @@ func (s *DB) RemoveForeignKey(field string, dest string) *DB {
 }
 
 // Association start `Association Mode` to handler relations things easir in that mode, refer: https://jinzhu.github.io/gorm/associations.html#association-mode
-func (s *DB) Association(column string) *Association {
+func (s *DB) Association(ctx context.Context, column string) *Association {
 	var err error
 	var scope = s.Set("gorm:association:source", s.Value).NewScope(context.Background(), s.Value)
 
@@ -649,7 +649,7 @@ func (s *DB) Association(column string) *Association {
 			if field.Relationship == nil || len(field.Relationship.ForeignFieldNames) == 0 {
 				err = fmt.Errorf("invalid association %v for %v", column, scope.IndirectValue().Type())
 			} else {
-				return &Association{scope: scope, column: column, field: field}
+				return &Association{scope: scope, column: column, field: field, ctx: ctx}
 			}
 		} else {
 			err = fmt.Errorf("%v doesn't have column %v", scope.IndirectValue().Type(), column)

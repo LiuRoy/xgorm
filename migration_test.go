@@ -342,11 +342,11 @@ func TestIndexes(t *testing.T) {
 
 	var user = User{Name: "sample_user"}
 	DB.Save(context.Background(), &user)
-	if DB.Model(&user).Association("Emails").Append(Email{Email: "not-1duplicated@gmail.com"}, Email{Email: "not-duplicated2@gmail.com"}).Error != nil {
+	if DB.Model(&user).Association(context.Background(), "Emails").Append(Email{Email: "not-1duplicated@gmail.com"}, Email{Email: "not-duplicated2@gmail.com"}).Error != nil {
 		t.Errorf("Should get no error when append two emails for user")
 	}
 
-	if DB.Model(&user).Association("Emails").Append(Email{Email: "duplicated@gmail.com"}, Email{Email: "duplicated@gmail.com"}).Error == nil {
+	if DB.Model(&user).Association(context.Background(), "Emails").Append(Email{Email: "duplicated@gmail.com"}, Email{Email: "duplicated@gmail.com"}).Error == nil {
 		t.Errorf("Should get no duplicated email error when insert duplicated emails for a user")
 	}
 

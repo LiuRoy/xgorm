@@ -310,7 +310,7 @@ func TestSelfReferencingMany2ManyColumn(t *testing.T) {
 		t.Errorf("no error should happen, but got %v", err)
 	}
 
-	if DB.Model(&user).Association("Friends").Count() != 2 {
+	if DB.Model(&user).Association(context.Background(), "Friends").Count() != 2 {
 		t.Errorf("Should find created friends correctly")
 	}
 
@@ -324,24 +324,24 @@ func TestSelfReferencingMany2ManyColumn(t *testing.T) {
 		t.Errorf("Should preload created frineds for self reference m2m")
 	}
 
-	DB.Model(&newUser).Association("Friends").Append(&SelfReferencingUser{Name: "friend3_m2m"})
-	if DB.Model(&user).Association("Friends").Count() != 3 {
+	DB.Model(&newUser).Association(context.Background(), "Friends").Append(&SelfReferencingUser{Name: "friend3_m2m"})
+	if DB.Model(&user).Association(context.Background(), "Friends").Count() != 3 {
 		t.Errorf("Should find created friends correctly")
 	}
 
-	DB.Model(&newUser).Association("Friends").Replace(&SelfReferencingUser{Name: "friend4_m2m"})
-	if DB.Model(&user).Association("Friends").Count() != 1 {
+	DB.Model(&newUser).Association(context.Background(), "Friends").Replace(&SelfReferencingUser{Name: "friend4_m2m"})
+	if DB.Model(&user).Association(context.Background(), "Friends").Count() != 1 {
 		t.Errorf("Should find created friends correctly")
 	}
 
 	friend := SelfReferencingUser{}
-	DB.Model(&newUser).Association("Friends").Find(&friend)
+	DB.Model(&newUser).Association(context.Background(), "Friends").Find(&friend)
 	if friend.Name != "friend4_m2m" {
 		t.Errorf("Should find created friends correctly")
 	}
 
-	DB.Model(&newUser).Association("Friends").Delete(friend)
-	if DB.Model(&user).Association("Friends").Count() != 0 {
+	DB.Model(&newUser).Association(context.Background(), "Friends").Delete(friend)
+	if DB.Model(&user).Association(context.Background(), "Friends").Count() != 0 {
 		t.Errorf("All friends should be deleted")
 	}
 }
