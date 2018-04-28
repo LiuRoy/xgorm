@@ -118,7 +118,8 @@ func (logger Logger) Print(values ...interface{}) {
 	logger.Println(LogFormatter(values...)...)
 }
 
-func printSql(sql string, values ...interface{}) string {
+func printSql(s string, values ...interface{}) string {
+	var sql string
 	var formattedValues []string
 	for _, value := range values {
 		indirectValue := reflect.Indirect(reflect.ValueOf(value))
@@ -147,15 +148,15 @@ func printSql(sql string, values ...interface{}) string {
 	}
 
 	// differentiate between $n placeholders or else treat like ?
-	if numericPlaceHolderRegexp.MatchString(values[3].(string)) {
-		sql = values[3].(string)
+	if numericPlaceHolderRegexp.MatchString(s) {
+		sql = s
 		for index, value := range formattedValues {
 			placeholder := fmt.Sprintf(`\$%d([^\d]|$)`, index+1)
 			sql = regexp.MustCompile(placeholder).ReplaceAllString(sql, value+"$1")
 		}
 	} else {
 		formattedValuesLength := len(formattedValues)
-		for index, value := range sqlRegexp.Split(values[3].(string), -1) {
+		for index, value := range sqlRegexp.Split(s, -1) {
 			sql += value
 			if index < formattedValuesLength {
 				sql += formattedValues[index]
